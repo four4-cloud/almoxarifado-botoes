@@ -436,7 +436,7 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 const ordensRef=db.ref("ordens");
 const movimentacoesRef=db.ref("movimentacoes");
-const estoqueRef=db.ref("estoque");
+const estoqueRef=db.ref("estoque_v2");
 const firebaseConnectionRef=db.ref(".info/connected");
 let firebaseConnected=false;
 let firebaseLastError="";
@@ -488,57 +488,59 @@ movimentacoesRef.on("value",snapshot=>{
   toast("Erro ao sincronizar o histórico do almoxarifado.");
 });
 
-// Escuta o estoque em tempo real.
+// Estoque compartilhado: Firebase é a fonte oficial.
 estoqueRef.on("value",snapshot=>{
   const remoto=snapshot.val();
 
   if(remoto && typeof remoto==="object"){
     const normalizado={};
 
-    Object.entries(remoto).forEach(([firebaseKey,value])=>{
-      if(!value || typeof value!=="object") return;
+    Object.entries(remoto).forEach(([catKey,items])=>{
+      if(!items || typeof items!=="object") return;
+      Object.entries(items).forEach(([itemKey,value])=>{
+        if(!value || typeof value!=="object") return;
+        if(!value.categoria || !value.item) return;
 
-      // Novo formato: chave segura + categoria/item dentro do registro.
-      if(value.categoria && value.item){
-        normalizado[getStockKey(String(value.categoria),String(value.item))]={
+        const logical=getStockKey(String(value.categoria),String(value.item));
+        normalizado[logical]={
           quantidade:Math.max(0,Number(value.quantidade)||0),
           minimo:Math.max(0,Number(value.minimo)||0)
         };
-        return;
-      }
-
-      // Formato antigo: chave lógica diretamente no Firebase.
-      // Mantemos compatibilidade para não perder o estoque já existente.
-      normalizado[firebaseKey]=value;
+      });
     });
 
     estoque=normalizado;
     estoqueMeta={updatedAt:Date.now(),source:"firebase"};
     localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
     localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify(estoqueMeta));
-  }else if(Object.keys(estoque).length){
-    // Banco vazio: publica a cópia local usando chaves seguras.
-    const updates={};
-    Object.entries(estoque).forEach(([logicalKey,value])=>{
-      const sep=logicalKey.indexOf("|||");
-      if(sep<0) return;
-      const categoria=logicalKey.slice(0,sep);
-      const item=logicalKey.slice(sep+3);
-      updates[getFirebaseStockKey(categoria,item)]={
-        categoria,item,
+
+    if($("stockControl"))renderStockControl();
+    if(selectedCategory && CATEGORIAS[selectedCategory] && $("item")?.classList.contains("active")){
+      renderItems(selectedCategory);
+    }
+  }else if(remoto===null && Object.keys(estoque).length){
+    // Migração única: somente se o novo nó estiver realmente vazio.
+    const inicial={};
+
+    Object.entries(estoque).forEach(([logical,value])=>{
+      const sep=logical.indexOf("|||");
+      if(sep<0)return;
+      const categoria=logical.slice(0,sep);
+      const item=logical.slice(sep+3);
+      inicial[getFirebasePart(categoria)] ||= {};
+      inicial[getFirebasePart(categoria)][getFirebasePart(item)]={
+        categoria,
+        item,
         quantidade:Math.max(0,Number(value?.quantidade)||0),
         minimo:Math.max(0,Number(value?.minimo)||0)
       };
     });
-    estoqueRef.set(updates).catch(e=>console.error("Erro ao publicar estoque inicial:",e));
-  }
 
-  if($("stockControl")) renderStockControl();
-  if(selectedCategory && CATEGORIAS[selectedCategory] && $("item")?.classList.contains("active")){
-    renderItems(selectedCategory);
+    estoqueRef.set(inicial).catch(e=>console.error("Erro na migração do estoque:",e));
   }
 },error=>{
   console.error("Erro ao sincronizar estoque:",error);
+  // O último estoque local continua disponível offline.
 });
 
 // // Escuta as OS em tempo real. Qualquer alteração no PC ou tablet atualiza os demais.
@@ -693,8 +695,12 @@ function selectMovement(t){selectedMovement=t;showScreen("employee")}
 function renderEmployees(){const b=$("employeeOptions");b.innerHTML="";COLABORADORES.forEach(n=>{const x=document.createElement("button");x.className="option";x.innerHTML=`<div class="option-icon">${COLABORADOR_ICONS[n]||"👤"}</div><div class="option-name">${escapeHtml(n)}</div>`;x.onclick=()=>{selectedEmployee=n;showScreen("category")};b.appendChild(x)})}
 function renderCategories(){const b=$("categoryOptions");b.innerHTML="";Object.entries(CATEGORIAS).forEach(([n,d])=>{const x=document.createElement("button");x.className="category";x.innerHTML=`<div class="category-icon">${d.icon}</div><div>${n}</div>`;x.onclick=()=>{selectedCategory=n;$("categoryTitle").textContent=n;renderItems(n);showScreen("item")};b.appendChild(x)})}
 function getStockKey(c,n){return c+"|||"+n}
-function getFirebaseStockKey(c,n){
-  return encodeURIComponent(getStockKey(c,n)).replace(/\\./g,"%2E");
+function getFirebasePart(value){
+  // Firebase path-safe, deterministic representation.
+  return encodeURIComponent(String(value)).replace(/%/g,"_");
+}
+function getFirebaseStockPath(c,n){
+  return getFirebasePart(c)+"/"+getFirebasePart(n);
 }
 function getStockData(c,n){return estoque[getStockKey(c,n)]||{quantidade:0,minimo:0}}
 function stockBadge(c,n){const d=getStockData(c,n),q=Number(d.quantidade)||0,m=Number(d.minimo)||0;let cls=q<=0?"zero":(m>0&&q<=m?"low":"");return `<div class="stock-badge ${cls}">${q}</div>`}
@@ -918,82 +924,68 @@ async function saveAllStockQuantities(){
       m.getAttribute("data-c")===input.getAttribute("data-c") &&
       m.getAttribute("data-n")===input.getAttribute("data-n")
     );
-
     const atual=novoEstoque[chave]||{};
+
     novoEstoque[chave]={
-      ...atual,
       quantidade:Math.max(0,Number(input.value)||0),
       minimo:minInput?Math.max(0,Number(minInput.value)||0):Math.max(0,Number(atual.minimo)||0)
     };
   });
 
-  // Salva local imediatamente.
+  // 1) Fixa imediatamente no aparelho.
   estoque=JSON.parse(JSON.stringify(novoEstoque));
   localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
   localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"local"}));
   updateLastUpdate();
-
   renderStockItems();
   renderStockSummary();
   renderStockRanking();
   if(typeof renderShoppingList==="function")renderShoppingList();
 
-  if(btn){
-    btn.disabled=true;
-    btn.textContent="☁️ SALVANDO...";
-  }
+  if(btn){btn.disabled=true;btn.textContent="☁️ SALVANDO...";}
 
   try{
-    if(!firebaseConnected) throw new Error("offline");
+    if(!firebaseConnected)throw new Error("offline");
 
-    // Grava ITEM POR ITEM com uma chave segura.
-    // Isso é importante porque categorias como "INSTALAÇÃO / BALCÃO"
-    // e "COLA / FITA / PU / VEDA CALHA" possuem "/" e não podem ser
-    // usadas como chave lógica direta em um update do Firebase.
-    const writes=Object.entries(novoEstoque).map(([logicalKey,value])=>{
-      const sep=logicalKey.indexOf("|||");
-      if(sep<0) return Promise.resolve();
+    // 2) Constrói um banco novo e limpo, sem usar nomes de itens como paths.
+    const cloud={};
+    Object.entries(novoEstoque).forEach(([logical,value])=>{
+      const sep=logical.indexOf("|||");
+      if(sep<0)return;
 
-      const categoria=logicalKey.slice(0,sep);
-      const item=logicalKey.slice(sep+3);
+      const categoria=logical.slice(0,sep);
+      const item=logical.slice(sep+3);
 
-      return estoqueRef.child(getFirebaseStockKey(categoria,item)).set({
+      const catKey=getFirebasePart(categoria);
+      const itemKey=getFirebasePart(item);
+
+      if(!cloud[catKey])cloud[catKey]={};
+      cloud[catKey][itemKey]={
         categoria,
         item,
         quantidade:Math.max(0,Number(value?.quantidade)||0),
         minimo:Math.max(0,Number(value?.minimo)||0)
-      });
+      };
     });
 
-    await Promise.all(writes);
+    // 3) Uma gravação atômica: ou o estoque inteiro é aceito, ou não muda.
+    await estoqueRef.set(cloud);
 
     localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
     localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({
       updatedAt:Date.now(),source:"firebase"
     }));
 
-    if(btn){
-      btn.disabled=false;
-      btn.textContent="💾 SALVAR QUANTIDADES";
-    }
-
-    toast("☁️ Estoque salvo e sincronizado!");
+    if(btn){btn.disabled=false;btn.textContent="💾 SALVAR QUANTIDADES";}
+    toast("☁️ Estoque salvo no servidor!");
   }catch(error){
-    console.error("ERRO REAL AO SALVAR ESTOQUE:",error);
-
-    if(btn){
-      btn.disabled=false;
-      btn.textContent="💾 SALVAR QUANTIDADES";
-    }
+    console.error("ERRO AO SALVAR ESTOQUE:",error);
+    if(btn){btn.disabled=false;btn.textContent="💾 SALVAR QUANTIDADES";}
 
     const codigo=error?.code||error?.message||"erro_desconhecido";
-    if(codigo==="PERMISSION_DENIED"){
-      toast("❌ Firebase recusou a gravação.");
-    }else if(codigo==="offline"){
-      toast("⚠️ Sem conexão. Ficou salvo neste aparelho.");
-    }else{
-      toast("❌ Erro ao salvar: "+codigo);
-    }
+    if(codigo==="PERMISSION_DENIED")toast("❌ Firebase recusou a gravação.");
+    else if(codigo==="offline")toast("⚠️ Sem conexão. Ficou salvo neste aparelho.");
+    else toast("❌ Erro ao salvar: "+codigo);
   }
 }
 function updateStockItem(c,n,field,value){
@@ -1592,7 +1584,7 @@ setInterval(()=>{
 console.log("Arasigns pronto");
 </script>
 <footer class="app-footer">
-  <div class="footer-version">VERSÃO 2.1.5.4</div>
+  <div class="footer-version">VERSÃO 2.1.6.4</div>
   <div class="footer-update-line">
     <span class="footer-update-icon">🕒</span>
     <span>ÚLTIMA ATUALIZAÇÃO:</span>
