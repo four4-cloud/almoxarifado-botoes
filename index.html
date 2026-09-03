@@ -437,6 +437,9 @@ const db=firebase.database();
 const ordensRef=db.ref("ordens");
 const movimentacoesRef=db.ref("movimentacoes");
 const estoqueRef=db.ref("estoque");
+const firebaseConnectionRef=db.ref(".info/connected");
+let firebaseConnected=false;
+let firebaseLastError="";
 let almoxFirebaseReady=false;
 let firstMovFirebaseLoad=true;
 
@@ -490,20 +493,44 @@ estoqueRef.on("value",snapshot=>{
   const remoto=snapshot.val();
 
   if(remoto && typeof remoto==="object"){
-    /*
-      O Firebase é a fonte compartilhada entre PC, tablet e celular.
-      localStorage fica somente como cópia local/cache.
-      Assim um "0" antigo guardado no tablet não ganha de um valor novo
-      que acabou de ser salvo no computador.
-    */
-    estoque={...remoto};
+    const normalizado={};
+
+    Object.entries(remoto).forEach(([firebaseKey,value])=>{
+      if(!value || typeof value!=="object") return;
+
+      // Novo formato: chave segura + categoria/item dentro do registro.
+      if(value.categoria && value.item){
+        normalizado[getStockKey(String(value.categoria),String(value.item))]={
+          quantidade:Math.max(0,Number(value.quantidade)||0),
+          minimo:Math.max(0,Number(value.minimo)||0)
+        };
+        return;
+      }
+
+      // Formato antigo: chave lógica diretamente no Firebase.
+      // Mantemos compatibilidade para não perder o estoque já existente.
+      normalizado[firebaseKey]=value;
+    });
+
+    estoque=normalizado;
     estoqueMeta={updatedAt:Date.now(),source:"firebase"};
     localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
     localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify(estoqueMeta));
   }else if(Object.keys(estoque).length){
-    // Migração inicial: só publica o estoque local se o nó compartilhado estiver vazio.
-    estoqueRef.set(JSON.parse(JSON.stringify(estoque)))
-      .catch(e=>console.error("Erro ao publicar estoque local:",e));
+    // Banco vazio: publica a cópia local usando chaves seguras.
+    const updates={};
+    Object.entries(estoque).forEach(([logicalKey,value])=>{
+      const sep=logicalKey.indexOf("|||");
+      if(sep<0) return;
+      const categoria=logicalKey.slice(0,sep);
+      const item=logicalKey.slice(sep+3);
+      updates[getFirebaseStockKey(categoria,item)]={
+        categoria,item,
+        quantidade:Math.max(0,Number(value?.quantidade)||0),
+        minimo:Math.max(0,Number(value?.minimo)||0)
+      };
+    });
+    estoqueRef.set(updates).catch(e=>console.error("Erro ao publicar estoque inicial:",e));
   }
 
   if($("stockControl")) renderStockControl();
@@ -512,10 +539,9 @@ estoqueRef.on("value",snapshot=>{
   }
 },error=>{
   console.error("Erro ao sincronizar estoque:",error);
-  // Mantém o cache local disponível caso a internet caia.
 });
 
-// Escuta as OS em tempo real. Qualquer alteração no PC ou tablet atualiza os demais.
+// // Escuta as OS em tempo real. Qualquer alteração no PC ou tablet atualiza os demais.
 ordensRef.on("value",snapshot=>{
   const dados=snapshot.val();
 
@@ -559,6 +585,14 @@ function setServerStatus(status){
     text.textContent="CONECTANDO AO SERVIDOR...";
   }
 }
+// Conexão REAL do Realtime Database.
+// "Servidor conectado" não é o mesmo que "escrita autorizada"; este indicador
+// mostra apenas o estado de rede com o banco.
+firebaseConnectionRef.on("value",snapshot=>{
+  firebaseConnected=snapshot.val()===true;
+  setServerStatus(firebaseConnected?"connected":"offline");
+});
+
 
 // Status real da conexão com o Firebase.
 db.ref(".info/connected").on("value",snap=>{
@@ -659,6 +693,9 @@ function selectMovement(t){selectedMovement=t;showScreen("employee")}
 function renderEmployees(){const b=$("employeeOptions");b.innerHTML="";COLABORADORES.forEach(n=>{const x=document.createElement("button");x.className="option";x.innerHTML=`<div class="option-icon">${COLABORADOR_ICONS[n]||"👤"}</div><div class="option-name">${escapeHtml(n)}</div>`;x.onclick=()=>{selectedEmployee=n;showScreen("category")};b.appendChild(x)})}
 function renderCategories(){const b=$("categoryOptions");b.innerHTML="";Object.entries(CATEGORIAS).forEach(([n,d])=>{const x=document.createElement("button");x.className="category";x.innerHTML=`<div class="category-icon">${d.icon}</div><div>${n}</div>`;x.onclick=()=>{selectedCategory=n;$("categoryTitle").textContent=n;renderItems(n);showScreen("item")};b.appendChild(x)})}
 function getStockKey(c,n){return c+"|||"+n}
+function getFirebaseStockKey(c,n){
+  return encodeURIComponent(getStockKey(c,n)).replace(/\\./g,"%2E");
+}
 function getStockData(c,n){return estoque[getStockKey(c,n)]||{quantidade:0,minimo:0}}
 function stockBadge(c,n){const d=getStockData(c,n),q=Number(d.quantidade)||0,m=Number(d.minimo)||0;let cls=q<=0?"zero":(m>0&&q<=m?"low":"");return `<div class="stock-badge ${cls}">${q}</div>`}
 function renderItems(c){const b=$("itemOptions");b.innerHTML="";CATEGORIAS[c].itens.forEach(n=>{const x=document.createElement("button");x.className="option";x.innerHTML=`<div class="option-icon">${ITEM_ICONS[n]||"📦"}</div><div class="option-name">${escapeHtml(n)}</div>${stockBadge(c,n)}`;x.onclick=()=>{selectedItem=n;selectedQuantity=1;$("quantityItemName").textContent=selectedItem;$("quantityInput").value=1;showScreen("quantity")};b.appendChild(x)});updateCartUI()}
@@ -743,18 +780,27 @@ function confirmCartMovement(){
 function resetMovement(){startMovement()}
 function saveMovements(){
   localStorage.setItem(ALMOX_STORAGE,JSON.stringify(movimentacoes));
+  renderHistory();
 
-  const promise=movimentacoesRef.set(JSON.parse(JSON.stringify(movimentacoes)))
-    .then(()=>{almoxFirebaseReady=true;})
+  if(!firebaseConnected){
+    toast("⚠️ Sem conexão: movimentação ficou salva neste aparelho.");
+    return Promise.reject(new Error("offline"));
+  }
+
+  return movimentacoesRef.set(JSON.parse(JSON.stringify(movimentacoes)))
+    .then(()=>{
+      almoxFirebaseReady=true;
+      return true;
+    })
     .catch(error=>{
-      console.error("Erro ao salvar movimentações:",error);
       almoxFirebaseReady=false;
-      toast("❌ Erro ao sincronizar movimentações.");
+      console.error("Firebase movimentações:",error);
+      const codigo=error?.code||"erro_desconhecido";
+      toast(codigo==="PERMISSION_DENIED"
+        ?"❌ Firebase recusou a movimentação."
+        :"❌ Erro ao sincronizar movimentação.");
       throw error;
     });
-
-  renderHistory();
-  return promise;
 }
 function renderHistory(){
 const b=$("history"),c=$("historyCount");
@@ -828,19 +874,21 @@ function exportCSV(rows,name){const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String
 function exportAlmoxCSV(){if(!movimentacoes.length)return toast("Não existem movimentações.");exportCSV([["DATA/HORA","MOVIMENTO","COLABORADOR","CATEGORIA","ITEM","QUANTIDADE"],...movimentacoes.map(r=>[r.dataHora,r.movimento,r.colaborador,r.categoria,r.item,r.quantidade??1])],"arasigns_movimentacoes");toast("CSV gerado!")}
 function openOSDashboard(){renderDashboard();showScreen("osDashboard")}
 function saveStock(){
-  // Atualiza o cache local imediatamente.
-  localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+  const payload=JSON.parse(JSON.stringify(estoque));
+  localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(payload));
 
-  // E grava a mesma informação no banco compartilhado.
-  return estoqueRef.set(JSON.parse(JSON.stringify(estoque)))
-    .then(()=>{
-      estoqueMeta={updatedAt:Date.now(),source:"firebase"};
-      localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify(estoqueMeta));
-    })
-    .catch(e=>{
-      console.error("Erro ao salvar estoque:",e);
-      throw e;
-    });
+  if(!firebaseConnected){
+    return Promise.reject(new Error("offline"));
+  }
+
+  return estoqueRef.update(payload).then(()=>{
+    firebaseLastError="";
+    return true;
+  }).catch(error=>{
+    firebaseLastError=error?.code||error?.message||"erro_desconhecido";
+    console.error("Firebase estoque:",error);
+    throw error;
+  });
 }
 function previewStockStatus(input){
   const row=input.closest(".stock-row");
@@ -861,6 +909,7 @@ async function saveAllStockQuantities(){
   if(!atuais.length){toast("⚠️ Nenhum item encontrado.");return;}
 
   const novoEstoque={...estoque};
+
   atuais.forEach(input=>{
     const categoria=decodeURIComponent(input.getAttribute("data-c")||"");
     const item=decodeURIComponent(input.getAttribute("data-n")||"");
@@ -869,42 +918,82 @@ async function saveAllStockQuantities(){
       m.getAttribute("data-c")===input.getAttribute("data-c") &&
       m.getAttribute("data-n")===input.getAttribute("data-n")
     );
+
+    const atual=novoEstoque[chave]||{};
     novoEstoque[chave]={
-      ...(novoEstoque[chave]||{}),
-      quantidade:Number.isFinite(Number(input.value))?Math.max(0,Number(input.value)):0,
-      minimo:minInput
-        ?(Number.isFinite(Number(minInput.value))?Math.max(0,Number(minInput.value)):0)
-        :Number((novoEstoque[chave]||{}).minimo||0)
+      ...atual,
+      quantidade:Math.max(0,Number(input.value)||0),
+      minimo:minInput?Math.max(0,Number(minInput.value)||0):Math.max(0,Number(atual.minimo)||0)
     };
   });
 
+  // Salva local imediatamente.
   estoque=JSON.parse(JSON.stringify(novoEstoque));
-  estoqueMeta={updatedAt:Date.now(),source:"local-pending"};
   localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
-  localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify(estoqueMeta));
+  localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"local"}));
+  updateLastUpdate();
 
-  if(btn){btn.disabled=true;btn.textContent="☁️ SALVANDO...";}
+  renderStockItems();
+  renderStockSummary();
+  renderStockRanking();
+  if(typeof renderShoppingList==="function")renderShoppingList();
+
+  if(btn){
+    btn.disabled=true;
+    btn.textContent="☁️ SALVANDO...";
+  }
+
   try{
-    // O set() resolvido pelo Firebase já confirma que a gravação foi aceita.
-    // Não fazemos uma segunda leitura obrigatória, pois ela estava gerando
-    // falso erro mesmo quando os dados já tinham sido enviados.
-    await estoqueRef.set(JSON.parse(JSON.stringify(estoque)));
-    estoqueMeta={updatedAt:Date.now(),source:"firebase"};
-    localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
-    localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify(estoqueMeta));
-    updateLastUpdate();
+    if(!firebaseConnected) throw new Error("offline");
 
-    renderStockItems();
-    renderStockSummary();
-    renderStockRanking();
-    if(typeof renderShoppingList==="function")renderShoppingList();
-    if(selectedCategory && CATEGORIAS[selectedCategory] && $("item")?.classList.contains("active"))renderItems(selectedCategory);
-    toast(`☁️ ${atuais.length} quantidades salvas e sincronizadas!`);
-  }catch(e){
-    console.error("Erro ao salvar estoque no Firebase:",e);
-    toast("❌ Erro ao salvar no servidor. As quantidades continuam guardadas neste aparelho.");
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent="💾 SALVAR QUANTIDADES";}
+    // Grava ITEM POR ITEM com uma chave segura.
+    // Isso é importante porque categorias como "INSTALAÇÃO / BALCÃO"
+    // e "COLA / FITA / PU / VEDA CALHA" possuem "/" e não podem ser
+    // usadas como chave lógica direta em um update do Firebase.
+    const writes=Object.entries(novoEstoque).map(([logicalKey,value])=>{
+      const sep=logicalKey.indexOf("|||");
+      if(sep<0) return Promise.resolve();
+
+      const categoria=logicalKey.slice(0,sep);
+      const item=logicalKey.slice(sep+3);
+
+      return estoqueRef.child(getFirebaseStockKey(categoria,item)).set({
+        categoria,
+        item,
+        quantidade:Math.max(0,Number(value?.quantidade)||0),
+        minimo:Math.max(0,Number(value?.minimo)||0)
+      });
+    });
+
+    await Promise.all(writes);
+
+    localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+    localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({
+      updatedAt:Date.now(),source:"firebase"
+    }));
+
+    if(btn){
+      btn.disabled=false;
+      btn.textContent="💾 SALVAR QUANTIDADES";
+    }
+
+    toast("☁️ Estoque salvo e sincronizado!");
+  }catch(error){
+    console.error("ERRO REAL AO SALVAR ESTOQUE:",error);
+
+    if(btn){
+      btn.disabled=false;
+      btn.textContent="💾 SALVAR QUANTIDADES";
+    }
+
+    const codigo=error?.code||error?.message||"erro_desconhecido";
+    if(codigo==="PERMISSION_DENIED"){
+      toast("❌ Firebase recusou a gravação.");
+    }else if(codigo==="offline"){
+      toast("⚠️ Sem conexão. Ficou salvo neste aparelho.");
+    }else{
+      toast("❌ Erro ao salvar: "+codigo);
+    }
   }
 }
 function updateStockItem(c,n,field,value){
@@ -1213,15 +1302,24 @@ function registerOS(){
 }
 function saveOS(){
   localStorage.setItem(OS_STORAGE,JSON.stringify(ordens));
-  if(!firebaseReady){
-    toast("⚠️ Conectando ao servidor...");
-    return Promise.reject(new Error("Firebase ainda não está conectado."));
+
+  if(!firebaseConnected){
+    toast("⚠️ Sem conexão com o servidor. OS salva neste aparelho.");
+    return Promise.reject(new Error("offline"));
   }
 
   return ordensRef.set(JSON.parse(JSON.stringify(ordens)))
+    .then(()=>{
+      firebaseReady=true;
+      return true;
+    })
     .catch(error=>{
-      console.error("Erro ao salvar no Firebase:",error);
-      toast("❌ Erro ao sincronizar a OS.");
+      firebaseReady=false;
+      console.error("Firebase OS:",error);
+      const codigo=error?.code||"erro_desconhecido";
+      toast(codigo==="PERMISSION_DENIED"
+        ?"❌ Firebase recusou a gravação da OS."
+        :"❌ Erro ao sincronizar a OS.");
       throw error;
     });
 }
@@ -1494,7 +1592,7 @@ setInterval(()=>{
 console.log("Arasigns pronto");
 </script>
 <footer class="app-footer">
-  <div class="footer-version">VERSÃO 2.1.2</div>
+  <div class="footer-version">VERSÃO 2.1.5.4</div>
   <div class="footer-update-line">
     <span class="footer-update-icon">🕒</span>
     <span>ÚLTIMA ATUALIZAÇÃO:</span>
