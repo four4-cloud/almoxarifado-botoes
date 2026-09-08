@@ -209,9 +209,16 @@ input,select,textarea{width:100%;background:#17181b;border:1px solid #35363a;bor
 .stock-help{color:var(--muted);font-size:13px;line-height:1.5;margin:0 2px 14px}
 .stock-category-block{margin:14px 0;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#151619}
 .stock-category-title{padding:13px 15px;font-weight:900;background:#1a1b1f;border-bottom:1px solid var(--line)}
-.stock-row{display:grid;grid-template-columns:1fr 78px 78px;gap:8px;align-items:center;padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.stock-row{display:grid;grid-template-columns:minmax(0,1fr) auto 78px 78px;gap:8px;align-items:center;padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
 .stock-row:last-child{border-bottom:0}
 .stock-row-name{font-size:12px;font-weight:800;line-height:1.2}
+.stock-row-main{min-width:0}
+.stock-item-actions{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.stock-item-action{width:36px;height:36px;border-radius:10px;border:1px solid #383a40;background:#17181b;color:#fff;font-size:16px;font-weight:900;cursor:pointer;display:grid;place-items:center}
+.stock-item-action.edit{border-color:rgba(52,152,255,.42);background:rgba(52,152,255,.10)}
+.stock-item-action.delete{border-color:rgba(255,23,38,.42);background:rgba(255,23,38,.10);color:#ff7b84}
+.stock-item-action:active{transform:scale(.94)}
+.stock-item-custom{font-size:8px;color:#ffb15c;font-weight:900;margin-top:3px;letter-spacing:.4px}
 .stock-input-wrap small{display:block;color:var(--muted);font-size:8px;font-weight:900;text-align:center;margin-bottom:3px}
 .stock-input{width:100%;box-sizing:border-box;padding:9px 4px;border-radius:10px;border:1px solid #38393d;background:#101114;color:#fff;text-align:center;font-weight:900}
 .stock-status{font-size:10px;margin-top:4px;color:var(--muted)}
@@ -253,7 +260,7 @@ input,select,textarea{width:100%;background:#17181b;border:1px solid #35363a;bor
 .footer-update-icon{margin-right:5px}
 
 .footer-version{display:inline-block;margin-bottom:6px;padding:5px 10px;border:1px solid rgba(47,155,255,.28);border-radius:999px;color:var(--blue);font-size:9px;font-weight:900;letter-spacing:1px;background:rgba(47,155,255,.08)}.footer-update-line{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap}
-.stock-tool-row{grid-template-columns:1fr 120px!important}.tool-holder-status{margin-top:4px;font-size:9px;font-weight:800;color:#8fd3ff;line-height:1.35}@media(max-width:520px){.stock-tool-row{grid-template-columns:1fr!important}.stock-tool-row .stock-input-wrap{margin-top:8px}}
+.stock-tool-row{grid-template-columns:minmax(0,1fr) auto 120px!important}.tool-holder-status{margin-top:4px;font-size:9px;font-weight:800;color:#8fd3ff;line-height:1.35}@media(max-width:520px){.stock-tool-row{grid-template-columns:1fr!important}.stock-tool-row .stock-input-wrap{margin-top:8px}.stock-item-actions{justify-content:flex-start;margin-top:6px}}
 
 /* CADASTRO DE NOVOS ITENS */
 .add-item-stock-button{width:100%;min-height:58px;margin:0 0 12px;border:1px solid rgba(255,106,0,.38);border-radius:16px;background:linear-gradient(120deg,#ff1726,#ff6a00);color:#fff;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 8px 22px rgba(255,106,0,.16)}
@@ -414,6 +421,8 @@ input,select,textarea{width:100%;background:#17181b;border:1px solid #35363a;bor
       <div><div class="new-item-kicker">CONTROLE DE ESTOQUE</div><div id="newItemTitle" class="new-item-title">CADASTRAR NOVO ITEM</div></div>
       <button type="button" class="new-item-close" onclick="closeNewItemModal()">×</button>
     </div>
+    <input type="hidden" id="editingItemCategory" value="">
+    <input type="hidden" id="editingItemName" value="">
     <div class="new-item-form">
       <div class="field"><label>NOME DO ITEM *</label><input id="newItemName" type="text" maxlength="80" placeholder="Ex: Furadeira"></div>
       <div class="field"><label>CATEGORIA *</label><select id="newItemCategory"></select></div>
@@ -1106,6 +1115,41 @@ function toolHolderLabel(itemName){
   return "👤 COM: "+holders.map(([nome,q])=>q>1?`${escapeHtml(nome)} (${q})`:escapeHtml(nome)).join(", ");
 }
 
+function isCustomStockItem(c,n){
+  const targetCat=String(c).trim().toUpperCase();
+  const targetName=String(n).trim().toUpperCase();
+  return Object.values(itensCadastrados||{}).some(d=>{
+    if(!d||typeof d!=="object")return false;
+    const cat=String(d.categoria||"").trim().toUpperCase();
+    if(cat!==targetCat)return false;
+    return Object.values(d.itens||{}).some(reg=>String(reg?.item||"").trim().toUpperCase()===targetName);
+  });
+}
+
+function findCustomItemRecord(c,n){
+  const targetCat=String(c).trim().toUpperCase();
+  const targetName=String(n).trim().toUpperCase();
+  for(const [catKey,d] of Object.entries(itensCadastrados||{})){
+    if(!d||typeof d!=="object")continue;
+    const cat=String(d.categoria||catKey).trim();
+    if(cat.toUpperCase()!==targetCat)continue;
+    for(const [itemKey,reg] of Object.entries(d.itens||{})){
+      if(String(reg?.item||"").trim().toUpperCase()===targetName){
+        return {catKey,itemKey,reg,categoria:cat,nome:String(reg.item).trim()};
+      }
+    }
+  }
+  return null;
+}
+
+function renderStockItemActions(c,n){
+  if(!isCustomStockItem(c,n))return "";
+  return `<div class="stock-item-actions">
+    <button type="button" class="stock-item-action edit" title="Editar item" aria-label="Editar item" onclick='openEditItem(${JSON.stringify(c)},${JSON.stringify(n)})'>✏️</button>
+    <button type="button" class="stock-item-action delete" title="Excluir item" aria-label="Excluir item" onclick='deleteCustomItem(${JSON.stringify(c)},${JSON.stringify(n)})'>🗑️</button>
+  </div>`;
+}
+
 function renderStockItems(){
   const box=$("stockCategoryOptions");box.innerHTML="";
   getCategoriasEntries().forEach(([c,d])=>{
@@ -1115,21 +1159,27 @@ function renderStockItems(){
     d.itens.forEach(n=>{
       const item=getStockData(c,n),row=document.createElement("div");row.className="stock-row";
       const isTool=String(c).trim().toUpperCase()==="FERRAMENTAS";
+      const custom=isCustomStockItem(c,n);
+      const actions=renderStockItemActions(c,n);
+      const mainOpen=`<div class="stock-row-main"><div class="stock-row-name">${ITEM_ICONS[n]||"📦"} ${escapeHtml(n)}</div>${custom?'<div class="stock-item-custom">ITEM CADASTRADO MANUALMENTE</div>':""}`;
 
       if(isTool){
         row.classList.add("stock-tool-row");
-        row.innerHTML=`<div><div class="stock-row-name">${ITEM_ICONS[n]||"🔧"} ${escapeHtml(n)}</div><div class="tool-holder-status">${toolHolderLabel(n)}</div></div>
+        row.innerHTML=`${mainOpen}<div class="tool-holder-status">${toolHolderLabel(n)}</div></div>
+        ${actions}
         <div class="stock-input-wrap"><small>QUANTIDADE</small><input class="stock-input stock-quantity-input" data-c="${encodeURIComponent(c)}" data-n="${encodeURIComponent(n)}" type="number" min="0" step="1" value="${Number(item.quantidade)||0}"></div>`;
       }else{
-        row.innerHTML=`<div><div class="stock-row-name">${ITEM_ICONS[n]||"📦"} ${escapeHtml(n)}</div><div class="stock-status">${Number(item.quantidade)<=0?"🔴 Sem saldo":(Number(item.minimo)>0&&Number(item.quantidade)<=Number(item.minimo)?"🟡 Estoque baixo":"🟢 Em estoque")}</div></div>
+        row.innerHTML=`${mainOpen}<div class="stock-status">${Number(item.quantidade)<=0?"🔴 Sem saldo":(Number(item.minimo)>0&&Number(item.quantidade)<=Number(item.minimo)?"🟡 Estoque baixo":"🟢 Em estoque")}</div></div>
+        ${actions}
         <div class="stock-input-wrap"><small>ATUAL</small><input class="stock-input stock-quantity-input" data-c="${encodeURIComponent(c)}" data-n="${encodeURIComponent(n)}" type="number" min="0" step="1" value="${Number(item.quantidade)||0}" oninput="previewStockStatus(this)"></div>
         <div class="stock-input-wrap"><small>MÍNIMO</small><input class="stock-input stock-minimum-input" data-c="${encodeURIComponent(c)}" data-n="${encodeURIComponent(n)}" type="number" min="0" step="1" value="${Number(item.minimo)||0}"></div>`;
       }
-      block.appendChild(row);
+      box.appendChild(block);
     });
     box.appendChild(block);
   });
 }
+
 function renderStockRanking(){
   const box=$("stockRankingList");if(!box)return;
   const all=[];
@@ -1235,13 +1285,63 @@ function updateNewItemMinimumState(){
   if(isTool){minimum.value="0";minimum.placeholder="Ferramentas não usam mínimo";}
   else minimum.placeholder="Ex: 10";
 }
+let editingItemOriginal=null;
+
+function resetNewItemModalMode(){
+  editingItemOriginal=null;
+  $("editingItemCategory").value="";
+  $("editingItemName").value="";
+  $("newItemTitle").textContent="CADASTRAR NOVO ITEM";
+  $("newItemSaveButton").textContent="💾 SALVAR ITEM";
+  $("newItemQuantity").disabled=false;
+}
+
 function openNewItemModal(){
+  resetNewItemModalMode();
   populateNewItemCategories();
   $("newItemName").value="";$("newItemQuantity").value="0";$("newItemMinimum").value="0";
   $("newItemModal").classList.add("show");
   setTimeout(()=>$("newItemName")?.focus(),50);
 }
-function closeNewItemModal(){$("newItemModal")?.classList.remove("show")}
+
+function openEditItem(c,n){
+  const found=findCustomItemRecord(c,n);
+  if(!found)return toast("⚠️ Não foi possível localizar esse item cadastrado.");
+  const stock=getStockData(c,n);
+  editingItemOriginal={categoria:found.categoria,nome:found.nome,catKey:found.catKey,itemKey:found.itemKey};
+  populateNewItemCategories();
+  $("editingItemCategory").value=found.categoria;
+  $("editingItemName").value=found.nome;
+  $("newItemTitle").textContent="EDITAR ITEM";
+  $("newItemSaveButton").textContent="💾 ATUALIZAR ITEM";
+  $("newItemName").value=found.nome;
+  $("newItemCategory").value=found.categoria;
+  $("newItemQuantity").value=Number(stock.quantidade)||0;
+  $("newItemMinimum").value=Number(stock.minimo)||0;
+  $("newItemQuantity").disabled=false;
+  updateNewItemMinimumState();
+  $("newItemModal").classList.add("show");
+  setTimeout(()=>$("newItemName")?.focus(),50);
+}
+
+function closeNewItemModal(){
+  $("newItemModal")?.classList.remove("show");
+  resetNewItemModalMode();
+}
+
+function sameItem(c1,n1,c2,n2){
+  return String(c1).trim().toUpperCase()===String(c2).trim().toUpperCase()
+    && String(n1).trim().toUpperCase()===String(n2).trim().toUpperCase();
+}
+
+function customItemDuplicate(categoria,name,exclude){
+  const cat=getCategoriasCompletas()[categoria];
+  return (cat?.itens||[]).some(x=>{
+    if(exclude && sameItem(categoria,x,exclude.categoria,exclude.nome))return false;
+    return String(x).trim().toUpperCase()===String(name).trim().toUpperCase();
+  });
+}
+
 async function saveNewItem(){
   const name=String($("newItemName")?.value||"").trim().replace(/\s+/g," ");
   const categoria=String($("newItemCategory")?.value||"").trim();
@@ -1253,38 +1353,94 @@ async function saveNewItem(){
   if(!name)return toast("⚠️ Digite o nome do item.");
   if(!categoria)return toast("⚠️ Escolha uma categoria.");
   if(name.length<2)return toast("⚠️ O nome do item é muito curto.");
-
-  const categoriaAtual=getCategoriasCompletas()[categoria];
-  const jaExiste=(categoriaAtual?.itens||[]).some(x=>String(x).trim().toUpperCase()===name.toUpperCase());
-  if(jaExiste)return toast("⚠️ Esse item já existe nessa categoria.");
+  if(customItemDuplicate(categoria,name,editingItemOriginal))return toast("⚠️ Esse item já existe nessa categoria.");
   if(!firebaseConnected)return toast("⚠️ Sem conexão com o Firebase. Conecte o aparelho e tente novamente.");
 
-  if(btn){btn.disabled=true;btn.textContent="☁️ SALVANDO...";}
+  if(btn){btn.disabled=true;btn.textContent=editingItemOriginal?"☁️ ATUALIZANDO...":"☁️ SALVANDO...";}
   try{
     const agora=new Date().toISOString();
-    const itemKey=getFirebasePart(name);
-    const catKey=getFirebasePart(categoria);
     const updates={};
-    updates[`itens_cadastrados/${catKey}/categoria`]=categoria;
-    updates[`itens_cadastrados/${catKey}/itens/${itemKey}`]={categoria,item:name,criadoEm:agora};
-    updates[`estoque_v2/${catKey}/${itemKey}`]={categoria,item:name,quantidade,minimo};
-    await db.ref().update(updates);
 
-    estoque[getStockKey(categoria,name)]={quantidade,minimo};
-    localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
-    localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"firebase"}));
-    closeNewItemModal();
-    renderStockControl();renderCategories();
-    toast(`✅ ${name} cadastrado e sincronizado!`);
-    updateLastUpdate();
+    if(editingItemOriginal){
+      const oldCatKey=editingItemOriginal.catKey;
+      const oldItemKey=editingItemOriginal.itemKey;
+      const oldStockKey=`estoque_v2/${getFirebasePart(editingItemOriginal.categoria)}/${getFirebasePart(editingItemOriginal.nome)}`;
+      const newCatKey=getFirebasePart(categoria);
+      const newItemKey=getFirebasePart(name);
+
+      updates[`itens_cadastrados/${oldCatKey}/itens/${oldItemKey}`]=null;
+      updates[oldStockKey]=null;
+      updates[`itens_cadastrados/${newCatKey}/categoria`]=categoria;
+      updates[`itens_cadastrados/${newCatKey}/itens/${newItemKey}`]={categoria,item:name,criadoEm:editingItemOriginal.criadoEm||agora,atualizadoEm:agora};
+      updates[`estoque_v2/${newCatKey}/${newItemKey}`]={categoria,item:name,quantidade,minimo};
+
+      await db.ref().update(updates);
+
+      delete estoque[getStockKey(editingItemOriginal.categoria,editingItemOriginal.nome)];
+      estoque[getStockKey(categoria,name)]={quantidade,minimo};
+      localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+      localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"firebase"}));
+      closeNewItemModal();
+      renderStockControl();renderCategories();
+      toast(`✅ ${name} atualizado e sincronizado!`);
+      updateLastUpdate();
+    }else{
+      const itemKey=getFirebasePart(name);
+      const catKey=getFirebasePart(categoria);
+      updates[`itens_cadastrados/${catKey}/categoria`]=categoria;
+      updates[`itens_cadastrados/${catKey}/itens/${itemKey}`]={categoria,item:name,criadoEm:agora};
+      updates[`estoque_v2/${catKey}/${itemKey}`]={categoria,item:name,quantidade,minimo};
+      await db.ref().update(updates);
+
+      estoque[getStockKey(categoria,name)]={quantidade,minimo};
+      localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+      localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"firebase"}));
+      closeNewItemModal();
+      renderStockControl();renderCategories();
+      toast(`✅ ${name} cadastrado e sincronizado!`);
+      updateLastUpdate();
+    }
   }catch(error){
-    console.error("Erro ao cadastrar novo item:",error);
+    console.error("Erro ao salvar item:",error);
     const codigo=error?.code||error?.message||"erro_desconhecido";
-    toast(codigo==="PERMISSION_DENIED"?"❌ Firebase recusou o cadastro. Verifique as regras do banco.":"❌ Não foi possível cadastrar o item: "+codigo);
+    toast(codigo==="PERMISSION_DENIED"?"❌ Firebase recusou a alteração. Verifique as regras do banco.":"❌ Não foi possível salvar o item: "+codigo);
   }finally{
-    if(btn){btn.disabled=false;btn.textContent="💾 SALVAR ITEM";}
+    if(btn){
+      btn.disabled=false;
+      btn.textContent=editingItemOriginal?"💾 ATUALIZAR ITEM":"💾 SALVAR ITEM";
+    }
   }
 }
+
+async function deleteCustomItem(c,n){
+  const found=findCustomItemRecord(c,n);
+  if(!found)return toast("⚠️ Não foi possível localizar esse item cadastrado.");
+  if(!firebaseConnected)return toast("⚠️ Sem conexão com o Firebase. Conecte o aparelho e tente novamente.");
+
+  const ok=confirm(`Excluir definitivamente o item "${found.nome}"?\n\nIsso removerá o item do Almoxarifado e do Controle de Estoque em todos os aparelhos.\n\nO histórico antigo de movimentações será mantido.`);
+  if(!ok)return;
+
+  try{
+    const updates={};
+    updates[`itens_cadastrados/${found.catKey}/itens/${found.itemKey}`]=null;
+    updates[`estoque_v2/${getFirebasePart(found.categoria)}/${getFirebasePart(found.nome)}`]=null;
+    await db.ref().update(updates);
+
+    delete estoque[getStockKey(found.categoria,found.nome)];
+    localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+    localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"firebase"}));
+    renderStockControl();
+    renderCategories();
+    if(selectedCategory===found.categoria && $("item")?.classList.contains("active"))renderItems(selectedCategory);
+    toast(`🗑️ ${found.nome} excluído e sincronizado!`);
+    updateLastUpdate();
+  }catch(error){
+    console.error("Erro ao excluir item:",error);
+    const codigo=error?.code||error?.message||"erro_desconhecido";
+    toast(codigo==="PERMISSION_DENIED"?"❌ Firebase recusou a exclusão. Verifique as regras do banco.":"❌ Não foi possível excluir o item: "+codigo);
+  }
+}
+
 document.addEventListener("change",e=>{if(e.target?.id==="newItemCategory")updateNewItemMinimumState()});
 document.addEventListener("click",e=>{if(e.target?.id==="newItemModal")closeNewItemModal()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("newItemModal")?.classList.contains("show"))closeNewItemModal()});
@@ -1731,7 +1887,7 @@ setInterval(()=>{
 console.log("Arasigns pronto");
 </script>
 <footer class="app-footer">
-  <div class="footer-version">VERSÃO 2.1.6.5</div>
+  <div class="footer-version">VERSÃO 2.1.6.6</div>
   <div class="footer-update-line">
     <span class="footer-update-icon">🕒</span>
     <span>ÚLTIMA ATUALIZAÇÃO:</span>
