@@ -350,6 +350,7 @@ input,select,textarea{width:100%;background:#17181b;border:1px solid #35363a;bor
 
 <div id="stockItemsPanel">
   <div class="stock-help">Digite as quantidades, confira tudo e depois clique em <b>SALVAR QUANTIDADES</b>.</div>
+  <div class="stock-help" style="margin-top:-6px;color:#7ddea0">☁️ As quantidades são sincronizadas com o Firebase e ficam disponíveis no PC, tablet e celular.</div>
   <button type="button" class="add-item-stock-button" onclick="openNewItemModal()">➕ CADASTRAR NOVO ITEM</button>
   <div class="stock-save-bar">
     <div class="stock-save-info">💾 As alterações só serão gravadas quando você clicar no botão.</div>
@@ -574,7 +575,11 @@ movimentacoesRef.on("value",snapshot=>{
   toast("Erro ao sincronizar o histórico do almoxarifado.");
 });
 
-// Estoque compartilhado: Firebase é a fonte oficial.
+// ESTOQUE COMPARTILHADO — FIREBASE É A FONTE OFICIAL.
+// O banco usa: estoque_v2 / categoria_codificada / item_codificado.
+// A interface usa: "CATEGORIA|||ITEM".
+// Esta conversão mantém os dois formatos separados e evita o bug de
+// gravar chaves "CATEGORIA|||ITEM" diretamente dentro do Firebase.
 estoqueRef.on("value",snapshot=>{
   const remoto=snapshot.val();
 
@@ -582,15 +587,18 @@ estoqueRef.on("value",snapshot=>{
     const normalizado={};
 
     Object.entries(remoto).forEach(([catKey,items])=>{
-      if(!items || typeof items!=="object") return;
-      Object.entries(items).forEach(([itemKey,value])=>{
-        if(!value || typeof value!=="object") return;
-        if(!value.categoria || !value.item) return;
+      if(!items || typeof items!=="object")return;
 
-        const logical=getStockKey(String(value.categoria),String(value.item));
-        normalizado[logical]={
-          quantidade:Math.max(0,Number(value.quantidade)||0),
-          minimo:Math.max(0,Number(value.minimo)||0)
+      Object.entries(items).forEach(([itemKey,value])=>{
+        if(!value || typeof value!=="object")return;
+
+        const categoria=String(value.categoria||"").trim();
+        const item=String(value.item||"").trim();
+        if(!categoria || !item)return;
+
+        normalizado[getStockKey(categoria,item)]={
+          quantidade:Math.max(0,Math.floor(Number(value.quantidade)||0)),
+          minimo:Math.max(0,Math.floor(Number(value.minimo)||0))
         };
       });
     });
@@ -600,25 +608,31 @@ estoqueRef.on("value",snapshot=>{
     localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
     localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify(estoqueMeta));
 
-    if($("stockControl"))renderStockControl();
-    if(selectedCategory && CATEGORIAS[selectedCategory] && $("item")?.classList.contains("active")){
+    if($("stockControl")?.classList.contains("active"))renderStockControl();
+
+    if(selectedCategory && $("item")?.classList.contains("active")){
       renderItems(selectedCategory);
     }
   }else if(remoto===null && Object.keys(estoque).length){
-    // Migração única: somente se o novo nó estiver realmente vazio.
+    // Migração somente se estoque_v2 ainda não existir.
     const inicial={};
 
     Object.entries(estoque).forEach(([logical,value])=>{
       const sep=logical.indexOf("|||");
       if(sep<0)return;
+
       const categoria=logical.slice(0,sep);
       const item=logical.slice(sep+3);
-      inicial[getFirebasePart(categoria)] ||= {};
-      inicial[getFirebasePart(categoria)][getFirebasePart(item)]={
+      const catKey=getFirebasePart(categoria);
+      const itemKey=getFirebasePart(item);
+
+      if(!inicial[catKey])inicial[catKey]={};
+
+      inicial[catKey][itemKey]={
         categoria,
         item,
-        quantidade:Math.max(0,Number(value?.quantidade)||0),
-        minimo:Math.max(0,Number(value?.minimo)||0)
+        quantidade:Math.max(0,Math.floor(Number(value?.quantidade)||0)),
+        minimo:Math.max(0,Math.floor(Number(value?.minimo)||0))
       };
     });
 
@@ -626,7 +640,7 @@ estoqueRef.on("value",snapshot=>{
   }
 },error=>{
   console.error("Erro ao sincronizar estoque:",error);
-  // O último estoque local continua disponível offline.
+  // Mantém o último estoque local disponível.
 });
 
 // // Escuta as OS em tempo real. Qualquer alteração no PC ou tablet atualiza os demais.
@@ -968,13 +982,38 @@ function openOSDashboard(){renderDashboard();showScreen("osDashboard")}
 function saveStock(){
   const payload=JSON.parse(JSON.stringify(estoque));
   localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(payload));
+  localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({
+    updatedAt:Date.now(),
+    source:"local"
+  }));
 
   if(!firebaseConnected){
     return Promise.reject(new Error("offline"));
   }
 
-  return estoqueRef.update(payload).then(()=>{
+  const updates={};
+
+  Object.entries(payload).forEach(([logical,value])=>{
+    const sep=logical.indexOf("|||");
+    if(sep<0)return;
+
+    const categoria=logical.slice(0,sep);
+    const item=logical.slice(sep+3);
+
+    updates[`estoque_v2/${getFirebasePart(categoria)}/${getFirebasePart(item)}`]={
+      categoria,
+      item,
+      quantidade:Math.max(0,Math.floor(Number(value?.quantidade)||0)),
+      minimo:Math.max(0,Math.floor(Number(value?.minimo)||0))
+    };
+  });
+
+  return db.ref().update(updates).then(()=>{
     firebaseLastError="";
+    localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({
+      updatedAt:Date.now(),
+      source:"firebase"
+    }));
     return true;
   }).catch(error=>{
     firebaseLastError=error?.code||error?.message||"erro_desconhecido";
@@ -998,43 +1037,57 @@ async function saveAllStockQuantities(){
   const atuais=[...document.querySelectorAll(".stock-quantity-input")];
   const minimos=[...document.querySelectorAll(".stock-minimum-input")];
   const btn=document.querySelector(".stock-save-button");
-  if(!atuais.length){toast("⚠️ Nenhum item encontrado.");return;}
 
+  if(!atuais.length){
+    toast("⚠️ Nenhum item encontrado.");
+    return;
+  }
+
+  // Primeiro atualiza a cópia local, para a tela não perder o que foi digitado.
   const novoEstoque={...estoque};
 
   atuais.forEach(input=>{
     const categoria=decodeURIComponent(input.getAttribute("data-c")||"");
     const item=decodeURIComponent(input.getAttribute("data-n")||"");
+    if(!categoria || !item)return;
+
     const chave=getStockKey(categoria,item);
     const minInput=minimos.find(m=>
       m.getAttribute("data-c")===input.getAttribute("data-c") &&
       m.getAttribute("data-n")===input.getAttribute("data-n")
     );
+
     const atual=novoEstoque[chave]||{};
 
     novoEstoque[chave]={
-      quantidade:Math.max(0,Number(input.value)||0),
-      minimo:minInput?Math.max(0,Number(minInput.value)||0):Math.max(0,Number(atual.minimo)||0)
+      quantidade:Math.max(0,Math.floor(Number(input.value)||0)),
+      minimo:minInput
+        ? Math.max(0,Math.floor(Number(minInput.value)||0))
+        : Math.max(0,Math.floor(Number(atual.minimo)||0))
     };
   });
 
-  // 1) Fixa imediatamente no aparelho.
   estoque=JSON.parse(JSON.stringify(novoEstoque));
   localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
-  localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"local"}));
-  updateLastUpdate();
-  renderStockItems();
+  localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({
+    updatedAt:Date.now(),
+    source:"local"
+  }));
+
   renderStockSummary();
   renderStockRanking();
   if(typeof renderShoppingList==="function")renderShoppingList();
 
-  if(btn){btn.disabled=true;btn.textContent="☁️ SALVANDO...";}
+  if(btn){
+    btn.disabled=true;
+    btn.textContent="☁️ SALVANDO...";
+  }
 
   try{
     if(!firebaseConnected)throw new Error("offline");
 
-    // 2) Constrói um banco novo e limpo, sem usar nomes de itens como paths.
-    const cloud={};
+    const updates={};
+
     Object.entries(novoEstoque).forEach(([logical,value])=>{
       const sep=logical.indexOf("|||");
       if(sep<0)return;
@@ -1042,36 +1095,45 @@ async function saveAllStockQuantities(){
       const categoria=logical.slice(0,sep);
       const item=logical.slice(sep+3);
 
-      const catKey=getFirebasePart(categoria);
-      const itemKey=getFirebasePart(item);
-
-      if(!cloud[catKey])cloud[catKey]={};
-      cloud[catKey][itemKey]={
+      updates[`estoque_v2/${getFirebasePart(categoria)}/${getFirebasePart(item)}`]={
         categoria,
         item,
-        quantidade:Math.max(0,Number(value?.quantidade)||0),
-        minimo:Math.max(0,Number(value?.minimo)||0)
+        quantidade:Math.max(0,Math.floor(Number(value?.quantidade)||0)),
+        minimo:Math.max(0,Math.floor(Number(value?.minimo)||0))
       };
     });
 
-    // 3) Uma gravação atômica: ou o estoque inteiro é aceito, ou não muda.
-    await estoqueRef.set(cloud);
+    await db.ref().update(updates);
 
-    localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
     localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({
-      updatedAt:Date.now(),source:"firebase"
+      updatedAt:Date.now(),
+      source:"firebase"
     }));
 
-    if(btn){btn.disabled=false;btn.textContent="💾 SALVAR QUANTIDADES";}
+    if(btn){
+      btn.disabled=false;
+      btn.textContent="💾 SALVAR QUANTIDADES";
+    }
+
+    updateLastUpdate();
     toast("☁️ Estoque salvo no servidor!");
   }catch(error){
     console.error("ERRO AO SALVAR ESTOQUE:",error);
-    if(btn){btn.disabled=false;btn.textContent="💾 SALVAR QUANTIDADES";}
+
+    if(btn){
+      btn.disabled=false;
+      btn.textContent="💾 SALVAR QUANTIDADES";
+    }
 
     const codigo=error?.code||error?.message||"erro_desconhecido";
-    if(codigo==="PERMISSION_DENIED")toast("❌ Firebase recusou a gravação.");
-    else if(codigo==="offline")toast("⚠️ Sem conexão. Ficou salvo neste aparelho.");
-    else toast("❌ Erro ao salvar: "+codigo);
+
+    if(codigo==="PERMISSION_DENIED"){
+      toast("❌ Firebase recusou a gravação.");
+    }else if(codigo==="offline"){
+      toast("⚠️ Sem conexão. Ficou salvo neste aparelho.");
+    }else{
+      toast("❌ Erro ao salvar: "+codigo);
+    }
   }
 }
 function updateStockItem(c,n,field,value){
@@ -1151,31 +1213,138 @@ function renderStockItemActions(c,n){
 }
 
 function renderStockItems(){
-  const box=$("stockCategoryOptions");box.innerHTML="";
-  getCategoriasEntries().forEach(([c,d])=>{
-    const block=document.createElement("div");block.className="stock-category-block";
-    block.innerHTML=`<div class="stock-category-title">${d.icon} ${escapeHtml(c)}</div>`;
+  const box=$("stockCategoryOptions");
+  if(!box)return;
 
-    d.itens.forEach(n=>{
-      const item=getStockData(c,n),row=document.createElement("div");row.className="stock-row";
+  box.innerHTML="";
+
+  const categorias=getCategoriasEntries();
+
+  categorias.forEach(([c,d])=>{
+    const block=document.createElement("div");
+    block.className="stock-category-block";
+
+    const title=document.createElement("div");
+    title.className="stock-category-title";
+    title.innerHTML=`${d.icon||"📦"} ${escapeHtml(c)}`;
+    block.appendChild(title);
+
+    const itens=Array.isArray(d.itens)?d.itens:[];
+
+    itens.forEach(n=>{
+      const item=getStockData(c,n);
+      const row=document.createElement("div");
+      row.className="stock-row";
+
       const isTool=String(c).trim().toUpperCase()==="FERRAMENTAS";
       const custom=isCustomStockItem(c,n);
       const actions=renderStockItemActions(c,n);
-      const mainOpen=`<div class="stock-row-main"><div class="stock-row-name">${ITEM_ICONS[n]||"📦"} ${escapeHtml(n)}</div>${custom?'<div class="stock-item-custom">ITEM CADASTRADO MANUALMENTE</div>':""}`;
+
+      const main=document.createElement("div");
+      main.className="stock-row-main";
+
+      const name=document.createElement("div");
+      name.className="stock-row-name";
+      name.innerHTML=`${ITEM_ICONS[n]||"📦"} ${escapeHtml(n)}`;
+      main.appendChild(name);
+
+      if(custom){
+        const customLabel=document.createElement("div");
+        customLabel.className="stock-item-custom";
+        customLabel.textContent="ITEM CADASTRADO MANUALMENTE";
+        main.appendChild(customLabel);
+      }
 
       if(isTool){
-        row.classList.add("stock-tool-row");
-        row.innerHTML=`${mainOpen}<div class="tool-holder-status">${toolHolderLabel(n)}</div></div>
-        ${actions}
-        <div class="stock-input-wrap"><small>QUANTIDADE</small><input class="stock-input stock-quantity-input" data-c="${encodeURIComponent(c)}" data-n="${encodeURIComponent(n)}" type="number" min="0" step="1" value="${Number(item.quantidade)||0}"></div>`;
+        const holder=document.createElement("div");
+        holder.className="tool-holder-status";
+        holder.innerHTML=toolHolderLabel(n);
+        main.appendChild(holder);
+
+        row.appendChild(main);
+
+        if(actions){
+          const actionWrap=document.createElement("div");
+          actionWrap.innerHTML=actions;
+          row.appendChild(actionWrap.firstElementChild);
+        }else{
+          row.appendChild(document.createElement("div"));
+        }
+
+        const inputWrap=document.createElement("div");
+        inputWrap.className="stock-input-wrap";
+        inputWrap.innerHTML=`
+          <small>QUANTIDADE</small>
+          <input
+            class="stock-input stock-quantity-input"
+            data-c="${encodeURIComponent(c)}"
+            data-n="${encodeURIComponent(n)}"
+            type="number"
+            min="0"
+            step="1"
+            value="${Math.max(0,Math.floor(Number(item.quantidade)||0))}"
+            inputmode="numeric"
+          >`;
+        row.appendChild(inputWrap);
       }else{
-        row.innerHTML=`${mainOpen}<div class="stock-status">${Number(item.quantidade)<=0?"🔴 Sem saldo":(Number(item.minimo)>0&&Number(item.quantidade)<=Number(item.minimo)?"🟡 Estoque baixo":"🟢 Em estoque")}</div></div>
-        ${actions}
-        <div class="stock-input-wrap"><small>ATUAL</small><input class="stock-input stock-quantity-input" data-c="${encodeURIComponent(c)}" data-n="${encodeURIComponent(n)}" type="number" min="0" step="1" value="${Number(item.quantidade)||0}" oninput="previewStockStatus(this)"></div>
-        <div class="stock-input-wrap"><small>MÍNIMO</small><input class="stock-input stock-minimum-input" data-c="${encodeURIComponent(c)}" data-n="${encodeURIComponent(n)}" type="number" min="0" step="1" value="${Number(item.minimo)||0}"></div>`;
+        const status=document.createElement("div");
+        status.className="stock-status";
+        const q=Math.max(0,Number(item.quantidade)||0);
+        const m=Math.max(0,Number(item.minimo)||0);
+        status.textContent=q<=0
+          ?"🔴 Sem saldo"
+          :(m>0&&q<=m?"🟡 Estoque baixo":"🟢 Em estoque");
+        main.appendChild(status);
+
+        row.appendChild(main);
+
+        if(actions){
+          const actionWrap=document.createElement("div");
+          actionWrap.innerHTML=actions;
+          row.appendChild(actionWrap.firstElementChild);
+        }else{
+          row.appendChild(document.createElement("div"));
+        }
+
+        const qtyWrap=document.createElement("div");
+        qtyWrap.className="stock-input-wrap";
+        qtyWrap.innerHTML=`
+          <small>ATUAL</small>
+          <input
+            class="stock-input stock-quantity-input"
+            data-c="${encodeURIComponent(c)}"
+            data-n="${encodeURIComponent(n)}"
+            type="number"
+            min="0"
+            step="1"
+            value="${q}"
+            inputmode="numeric"
+            oninput="previewStockStatus(this)"
+          >`;
+
+        const minWrap=document.createElement("div");
+        minWrap.className="stock-input-wrap";
+        minWrap.innerHTML=`
+          <small>MÍNIMO</small>
+          <input
+            class="stock-input stock-minimum-input"
+            data-c="${encodeURIComponent(c)}"
+            data-n="${encodeURIComponent(n)}"
+            type="number"
+            min="0"
+            step="1"
+            value="${m}"
+            inputmode="numeric"
+            oninput="previewStockStatus(this.closest('.stock-row').querySelector('.stock-quantity-input'))"
+          >`;
+
+        row.appendChild(qtyWrap);
+        row.appendChild(minWrap);
       }
-      box.appendChild(block);
+
+      block.appendChild(row);
     });
+
     box.appendChild(block);
   });
 }
@@ -1887,7 +2056,7 @@ setInterval(()=>{
 console.log("Arasigns pronto");
 </script>
 <footer class="app-footer">
-  <div class="footer-version">VERSÃO 2.1.6.6</div>
+  <div class="footer-version">VERSÃO 2.1.7</div>
   <div class="footer-update-line">
     <span class="footer-update-icon">🕒</span>
     <span>ÚLTIMA ATUALIZAÇÃO:</span>
