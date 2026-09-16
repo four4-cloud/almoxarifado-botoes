@@ -209,9 +209,16 @@ input,select,textarea{width:100%;background:#17181b;border:1px solid #35363a;bor
 .stock-help{color:var(--muted);font-size:13px;line-height:1.5;margin:0 2px 14px}
 .stock-category-block{margin:14px 0;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#151619}
 .stock-category-title{padding:13px 15px;font-weight:900;background:#1a1b1f;border-bottom:1px solid var(--line)}
-.stock-row{display:grid;grid-template-columns:1fr 78px 78px;gap:8px;align-items:center;padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.stock-row{display:grid;grid-template-columns:minmax(0,1fr) auto 78px 78px;gap:8px;align-items:center;padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
 .stock-row:last-child{border-bottom:0}
 .stock-row-name{font-size:12px;font-weight:800;line-height:1.2}
+.stock-row-main{min-width:0}
+.stock-item-actions{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.stock-item-action{width:36px;height:36px;border-radius:10px;border:1px solid #383a40;background:#17181b;color:#fff;font-size:16px;font-weight:900;cursor:pointer;display:grid;place-items:center}
+.stock-item-action.edit{border-color:rgba(52,152,255,.42);background:rgba(52,152,255,.10)}
+.stock-item-action.delete{border-color:rgba(255,23,38,.42);background:rgba(255,23,38,.10);color:#ff7b84}
+.stock-item-action:active{transform:scale(.94)}
+.stock-item-custom{font-size:8px;color:#ffb15c;font-weight:900;margin-top:3px;letter-spacing:.4px}
 .stock-input-wrap small{display:block;color:var(--muted);font-size:8px;font-weight:900;text-align:center;margin-bottom:3px}
 .stock-input{width:100%;box-sizing:border-box;padding:9px 4px;border-radius:10px;border:1px solid #38393d;background:#101114;color:#fff;text-align:center;font-weight:900}
 .stock-status{font-size:10px;margin-top:4px;color:var(--muted)}
@@ -253,7 +260,37 @@ input,select,textarea{width:100%;background:#17181b;border:1px solid #35363a;bor
 .footer-update-icon{margin-right:5px}
 
 .footer-version{display:inline-block;margin-bottom:6px;padding:5px 10px;border:1px solid rgba(47,155,255,.28);border-radius:999px;color:var(--blue);font-size:9px;font-weight:900;letter-spacing:1px;background:rgba(47,155,255,.08)}.footer-update-line{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap}
-.stock-tool-row{grid-template-columns:1fr 120px!important}.tool-holder-status{margin-top:4px;font-size:9px;font-weight:800;color:#8fd3ff;line-height:1.35}@media(max-width:520px){.stock-tool-row{grid-template-columns:1fr!important}.stock-tool-row .stock-input-wrap{margin-top:8px}}
+.stock-tool-row{grid-template-columns:minmax(0,1fr) auto 120px!important}.tool-holder-status{margin-top:4px;font-size:9px;font-weight:800;color:#8fd3ff;line-height:1.35}@media(max-width:520px){.stock-tool-row{grid-template-columns:1fr!important}.stock-tool-row .stock-input-wrap{margin-top:8px}.stock-item-actions{justify-content:flex-start;margin-top:6px}}
+
+/* CADASTRO DE NOVOS ITENS */
+.add-item-stock-button{width:100%;min-height:58px;margin:0 0 12px;border:1px solid rgba(255,106,0,.38);border-radius:16px;background:linear-gradient(120deg,#ff1726,#ff6a00);color:#fff;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 8px 22px rgba(255,106,0,.16)}
+.add-item-stock-button:active{transform:scale(.98)}
+.modal-backdrop{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.78);backdrop-filter:blur(7px)}
+.modal-backdrop.show{display:flex}
+.new-item-modal{width:min(560px,100%);max-height:90vh;overflow:auto;border:1px solid #34363c;border-radius:24px;background:linear-gradient(145deg,#18191d,#0d0e10);box-shadow:0 25px 80px rgba(0,0,0,.65);padding:20px}
+.new-item-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
+.new-item-kicker{color:var(--orange);font-size:11px;font-weight:900;letter-spacing:1px}
+.new-item-title{font-size:25px;font-weight:900;margin-top:5px}
+.new-item-close{width:42px;height:42px;border:1px solid #3a3c42;border-radius:12px;background:#151619;color:#fff;font-size:20px;font-weight:900;cursor:pointer}
+.new-item-form{display:grid;gap:13px}
+.new-item-note{padding:12px 14px;border:1px solid rgba(47,155,255,.25);border-radius:13px;background:rgba(47,155,255,.08);color:#bfc8d5;font-size:11px;line-height:1.5}
+.new-item-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:5px}
+.new-item-save,.new-item-cancel{min-height:52px;border-radius:14px;font-size:14px;font-weight:900;cursor:pointer}
+.new-item-save{border:0;background:linear-gradient(120deg,#079447,#16d46b);color:#fff}
+.new-item-cancel{border:1px solid #383a40;background:#17181b;color:#ddd}
+.new-item-save:disabled{opacity:.55;cursor:wait}
+@media(max-width:520px){.new-item-modal{padding:16px;border-radius:20px}.new-item-title{font-size:21px}.new-item-actions{grid-template-columns:1fr}}
+
+
+/* DASHBOARD GERAL DO ALMOXARIFADO */
+.almox-dashboard-button{margin:10px 0 14px;width:100%;min-height:62px;border:1px solid rgba(255,166,0,.38);border-radius:16px;background:linear-gradient(135deg,#16181c,#22252b);color:#fff;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 10px 25px rgba(0,0,0,.18);transition:.2s}.almox-dashboard-button:hover{transform:translateY(-2px);border-color:rgba(255,174,0,.7)}.almox-dashboard-button:active{transform:scale(.98)}
+.almox-dash-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;margin-bottom:16px}.almox-dash-kicker{color:#ffad19;font-size:11px;font-weight:900;letter-spacing:1.5px}.almox-dash-title{font-size:30px;font-weight:900;margin-top:4px}.almox-dash-date{color:#8f98a5;font-size:11px;text-align:right}
+.almox-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.almox-kpi{background:linear-gradient(145deg,#17191d,#111214);border:1px solid #2d3138;border-radius:17px;padding:15px;min-height:92px}.almox-kpi small{display:block;color:#8d96a3;font-size:9px;font-weight:900;letter-spacing:.6px}.almox-kpi strong{display:block;font-size:28px;margin-top:8px}.almox-kpi span{display:block;color:#707985;font-size:10px;margin-top:3px}.almox-kpi.red{border-color:rgba(255,61,61,.4)}.almox-kpi.yellow{border-color:rgba(255,183,0,.4)}.almox-kpi.green{border-color:rgba(34,197,94,.35)}.almox-kpi.blue{border-color:rgba(47,155,255,.4)}
+.almox-dash-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.almox-dash-card{background:#151619;border:1px solid #2b2f35;border-radius:18px;padding:17px;margin-bottom:14px}.almox-dash-card h3{margin:0 0 14px;font-size:14px;font-weight:900}.almox-dash-sub{color:#7f8792;font-size:10px;margin-top:-8px;margin-bottom:14px}
+.almox-bar-row{display:grid;grid-template-columns:145px 1fr 45px;gap:10px;align-items:center;margin:11px 0}.almox-bar-name{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.almox-bar-track{height:10px;border-radius:99px;background:#24272c;overflow:hidden}.almox-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#1675d1,#2f9bff);transition:width .4s ease}.almox-bar-value{text-align:right;font-size:11px;font-weight:900}
+.almox-dash-list{display:grid;gap:9px}.almox-dash-list-item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 12px;background:#111316;border:1px solid #262a30;border-radius:13px}.almox-dash-list-main{min-width:0}.almox-dash-list-name{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.almox-dash-list-meta{font-size:9px;color:#737c88;margin-top:4px}.almox-dash-pill{padding:5px 8px;border-radius:999px;font-size:9px;font-weight:900;white-space:nowrap}.almox-dash-pill.red{background:#35171a;color:#ff9ca3}.almox-dash-pill.yellow{background:#332b12;color:#ffd768}.almox-dash-pill.green{background:#122a1c;color:#78e8a1}.almox-dash-pill.blue{background:#112a42;color:#8bc8ff}.almox-empty{padding:18px;text-align:center;color:#717985;font-size:11px}.almox-insight{border-left:3px solid #2f9bff;padding:11px 13px;background:#101419;border-radius:0 12px 12px 0;color:#c8d0da;font-size:11px;line-height:1.55;margin-top:12px}.almox-insight b{color:#fff}
+@media(max-width:900px){.almox-kpis{grid-template-columns:repeat(2,1fr)}.almox-dash-grid{grid-template-columns:1fr}}@media(max-width:600px){.almox-dash-hero{align-items:flex-start;flex-direction:column}.almox-dash-date{text-align:left}.almox-dash-title{font-size:24px}.almox-bar-row{grid-template-columns:105px 1fr 35px}.almox-kpi strong{font-size:24px}}
+
 </style>
 </head>
 <body>
@@ -272,7 +309,7 @@ input,select,textarea{width:100%;background:#17181b;border:1px solid #35363a;bor
 <div class="card"><div class="question"><div class="question-label">ARASIGNS</div><div class="question-title">O QUE VOCÊ DESEJA ACESSAR?</div></div>
 <div class="home-grid">
 <button class="home-button almox" onclick="startMovement()">📦<br>ALMOXARIFADO</button>
-<button class="home-button estoque" onclick="openStockControl()">📦<br>CONTROLE DE<br>ESTOQUE</button><button class="home-button os" onclick="openOSDashboard()">🧾<br>ORDEM DE SERVIÇO</button>
+<button class="home-button estoque" onclick="openStockControl()">📦<br>CONTROLE DE<br>ESTOQUE</button><button class="home-button os" onclick="openOSDashboard()">🧾<br>ORDEM DE SERVIÇO</button><button class="home-button dashboard" onclick="openAlmoxDashboard()">📊<br>DASHBOARD</button>
 </div></div></section>
 
 <section class="screen" id="movement"><div class="page-top"><button class="back-button" onclick="showScreen('home')">← VOLTAR</button><div class="page-title">MOVIMENTAÇÃO</div><div></div></div><div class="card"><div class="question"><div class="question-label">PRIMEIRO PASSO</div><div class="question-title">RETIRADA OU DEVOLUÇÃO?</div></div><div class="movement-choice"><button class="btn-retirada" onclick="selectMovement('RETIRADA')">⬆️<br>RETIRADA</button><button class="btn-devolucao" onclick="selectMovement('DEVOLUÇÃO')">⬇️<br>DEVOLUÇÃO</button></div></div><div class="card"><div class="history-header"><div class="history-title">📋 HISTÓRICO DE MOVIMENTAÇÕES</div><div class="history-count" id="historyCount">0 REGISTROS</div></div><div id="history"><div class="empty">📋<br><br>Nenhuma movimentação registrada.</div></div>
@@ -301,12 +338,29 @@ input,select,textarea{width:100%;background:#17181b;border:1px solid #35363a;bor
 <div class="card"><div class="history-title">🏭 OS POR SETOR</div><div class="sector-table" id="sectorChart" style="margin-top:16px"></div></div>
 </section>
 
+<section class="screen" id="almoxDashboard">
+<div class="page-top"><button class="back-button" onclick="showScreen('stockControl')">← ESTOQUE</button><div class="page-title">📊 DASHBOARD</div><div></div></div>
+<div class="almox-dash-hero"><div><div class="almox-dash-kicker">ARASIGNS • ALMOXARIFADO</div><div class="almox-dash-title">Visão geral do estoque</div></div><div class="almox-dash-date" id="almoxDashUpdated">Atualizando...</div></div>
+<div class="almox-kpis" id="almoxDashKpis"></div>
+<div class="almox-dash-grid"><div>
+<div class="almox-dash-card"><h3>📈 MOVIMENTAÇÃO</h3><div class="almox-dash-sub">Retiradas e devoluções registradas no histórico</div><div id="almoxDashMovementBars"></div><div class="almox-insight" id="almoxDashInsight">Calculando análise...</div></div>
+<div class="almox-dash-card"><h3>🏷️ ESTOQUE POR CATEGORIA</h3><div class="almox-dash-sub">Quantidade disponível agrupada por categoria</div><div id="almoxDashCategoryBars"></div></div>
+</div><div>
+<div class="almox-dash-card"><h3>🔥 ITENS MAIS RETIRADOS</h3><div id="almoxDashTopItems" class="almox-dash-list"></div></div>
+<div class="almox-dash-card"><h3>👥 QUEM MAIS MOVIMENTOU</h3><div id="almoxDashPeople" class="almox-dash-list"></div></div>
+<div class="almox-dash-card"><h3>🚨 ATENÇÃO NO ESTOQUE</h3><div id="almoxDashAlerts" class="almox-dash-list"></div></div>
+</div></div>
+<div class="almox-dash-card"><h3>🕒 ÚLTIMAS MOVIMENTAÇÕES</h3><div id="almoxDashRecent" class="almox-dash-list"></div></div>
+</section>
+
 <section class="screen" id="stockControl">
 <div class="page-top">
   <button class="back-button" onclick="showScreen('home')">← VOLTAR</button>
   <div class="page-title">📦 CONTROLE DE ESTOQUE</div>
   <div></div>
 </div>
+
+<button class="almox-dashboard-button" onclick="openAlmoxDashboard()">📊 ABRIR DASHBOARD GERAL DO ALMOXARIFADO</button>
 
 <div class="stock-summary">
   <div class="stock-summary-card"><span>📦</span><div><small>ITENS CADASTRADOS</small><strong id="stockTotalItems">0</strong></div></div>
@@ -323,6 +377,8 @@ input,select,textarea{width:100%;background:#17181b;border:1px solid #35363a;bor
 
 <div id="stockItemsPanel">
   <div class="stock-help">Digite as quantidades, confira tudo e depois clique em <b>SALVAR QUANTIDADES</b>.</div>
+  <div class="stock-help" style="margin-top:-6px;color:#7ddea0">☁️ As quantidades são sincronizadas com o Firebase e ficam disponíveis no PC, tablet e celular.</div>
+  <button type="button" class="add-item-stock-button" onclick="openNewItemModal()">➕ CADASTRAR NOVO ITEM</button>
   <div class="stock-save-bar">
     <div class="stock-save-info">💾 As alterações só serão gravadas quando você clicar no botão.</div>
     <button type="button" class="stock-save-button" onclick="saveAllStockQuantities()">💾 SALVAR QUANTIDADES</button>
@@ -386,7 +442,32 @@ input,select,textarea{width:100%;background:#17181b;border:1px solid #35363a;bor
 </section>
 
 <section class="screen" id="osDetail"><div class="page-top"><button class="back-button" onclick="openOSList()">← LISTA</button><div class="page-title">DETALHES DA OS</div><div></div></div><div class="card" id="osDetailContent"></div></section>
-</div><div class="toast" id="toast"></div>
+</div>
+<div id="newItemModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="newItemTitle">
+  <div class="new-item-modal">
+    <div class="new-item-head">
+      <div><div class="new-item-kicker">CONTROLE DE ESTOQUE</div><div id="newItemTitle" class="new-item-title">CADASTRAR NOVO ITEM</div></div>
+      <button type="button" class="new-item-close" onclick="closeNewItemModal()">×</button>
+    </div>
+    <input type="hidden" id="editingItemCategory" value="">
+    <input type="hidden" id="editingItemName" value="">
+    <div class="new-item-form">
+      <div class="field"><label>NOME DO ITEM *</label><input id="newItemName" type="text" maxlength="80" placeholder="Ex: Furadeira"></div>
+      <div class="field"><label>CATEGORIA *</label><select id="newItemCategory"></select></div>
+      <div class="new-item-note">💡 O item será cadastrado no Firebase e aparecerá automaticamente no PC, tablet e celular.</div>
+      <div class="os-form-grid">
+        <div class="field"><label>QUANTIDADE INICIAL</label><input id="newItemQuantity" type="number" min="0" step="1" value="0" inputmode="numeric"></div>
+        <div class="field"><label>ESTOQUE MÍNIMO</label><input id="newItemMinimum" type="number" min="0" step="1" value="0" inputmode="numeric"></div>
+      </div>
+      <div class="new-item-actions">
+        <button type="button" class="new-item-cancel" onclick="closeNewItemModal()">CANCELAR</button>
+        <button type="button" id="newItemSaveButton" class="new-item-save" onclick="saveNewItem()">💾 SALVAR ITEM</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js">renderLastUpdate();
 </script>
@@ -436,7 +517,10 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 const ordensRef=db.ref("ordens");
 const movimentacoesRef=db.ref("movimentacoes");
-const estoqueRef=db.ref("estoque");
+const estoqueRef=db.ref("estoque_v2");
+const firebaseConnectionRef=db.ref(".info/connected");
+let firebaseConnected=false;
+let firebaseLastError="";
 let almoxFirebaseReady=false;
 let firstMovFirebaseLoad=true;
 
@@ -459,6 +543,39 @@ let firstFirebaseLoad=true;
 let estoquePendingSave=false;
 let estoquePendingData=null;
 
+const ITENS_CADASTRADOS_REF = db.ref("itens_cadastrados");
+let itensCadastrados = {};
+
+function getCategoriasCompletas(){
+  const resultado={};
+  Object.entries(CATEGORIAS).forEach(([categoria,dados])=>{
+    resultado[categoria]={icon:dados.icon,itens:[...dados.itens]};
+  });
+  Object.entries(itensCadastrados||{}).forEach(([categoria,dados])=>{
+    if(!dados || typeof dados!=="object")return;
+    const nomeCategoria=String(dados.categoria||categoria).trim();
+    if(!nomeCategoria)return;
+    if(!resultado[nomeCategoria])resultado[nomeCategoria]={icon:"📦",itens:[]};
+    Object.values(dados.itens||{}).forEach(reg=>{
+      const nome=String(reg?.item||"").trim();
+      if(nome && !resultado[nomeCategoria].itens.some(x=>String(x).trim().toUpperCase()===nome.toUpperCase())){
+        resultado[nomeCategoria].itens.push(nome);
+      }
+    });
+  });
+  return resultado;
+}
+function getCategoriasEntries(){return Object.entries(getCategoriasCompletas())}
+
+// Itens cadastrados: sincronização em tempo real entre todos os aparelhos.
+ITENS_CADASTRADOS_REF.on("value",snapshot=>{
+  const dados=snapshot.val();
+  itensCadastrados=dados && typeof dados==="object" ? dados : {};
+  if($("stockControl")?.classList.contains("active"))renderStockControl();
+  renderCategories();
+  if(selectedCategory && $("item")?.classList.contains("active"))renderItems(selectedCategory);
+},error=>console.error("Erro ao sincronizar itens cadastrados:",error));
+
 // Escuta o histórico do almoxarifado em TEMPO REAL.
 movimentacoesRef.on("value",snapshot=>{
   const dados=snapshot.val();
@@ -475,6 +592,7 @@ movimentacoesRef.on("value",snapshot=>{
     localStorage.setItem(ALMOX_STORAGE,JSON.stringify(movimentacoes));
     almoxFirebaseReady=true;
     renderHistory();
+    if($("almoxDashboard")?.classList.contains("active"))renderAlmoxDashboard();
     if($("stockCategoryOptions")) renderStockItems();
   }
 
@@ -485,37 +603,76 @@ movimentacoesRef.on("value",snapshot=>{
   toast("Erro ao sincronizar o histórico do almoxarifado.");
 });
 
-// Escuta o estoque em tempo real.
+// ESTOQUE COMPARTILHADO — FIREBASE É A FONTE OFICIAL.
+// O banco usa: estoque_v2 / categoria_codificada / item_codificado.
+// A interface usa: "CATEGORIA|||ITEM".
+// Esta conversão mantém os dois formatos separados e evita o bug de
+// gravar chaves "CATEGORIA|||ITEM" diretamente dentro do Firebase.
 estoqueRef.on("value",snapshot=>{
   const remoto=snapshot.val();
 
   if(remoto && typeof remoto==="object"){
-    /*
-      O Firebase é a fonte compartilhada entre PC, tablet e celular.
-      localStorage fica somente como cópia local/cache.
-      Assim um "0" antigo guardado no tablet não ganha de um valor novo
-      que acabou de ser salvo no computador.
-    */
-    estoque={...remoto};
+    const normalizado={};
+
+    Object.entries(remoto).forEach(([catKey,items])=>{
+      if(!items || typeof items!=="object")return;
+
+      Object.entries(items).forEach(([itemKey,value])=>{
+        if(!value || typeof value!=="object")return;
+
+        const categoria=String(value.categoria||"").trim();
+        const item=String(value.item||"").trim();
+        if(!categoria || !item)return;
+
+        normalizado[getStockKey(categoria,item)]={
+          quantidade:Math.max(0,Math.floor(Number(value.quantidade)||0)),
+          minimo:Math.max(0,Math.floor(Number(value.minimo)||0))
+        };
+      });
+    });
+
+    estoque=normalizado;
     estoqueMeta={updatedAt:Date.now(),source:"firebase"};
     localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
     localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify(estoqueMeta));
-  }else if(Object.keys(estoque).length){
-    // Migração inicial: só publica o estoque local se o nó compartilhado estiver vazio.
-    estoqueRef.set(JSON.parse(JSON.stringify(estoque)))
-      .catch(e=>console.error("Erro ao publicar estoque local:",e));
-  }
 
-  if($("stockControl")) renderStockControl();
-  if(selectedCategory && CATEGORIAS[selectedCategory] && $("item")?.classList.contains("active")){
-    renderItems(selectedCategory);
+    if($("stockControl")?.classList.contains("active"))renderStockControl();
+    if($("almoxDashboard")?.classList.contains("active"))renderAlmoxDashboard();
+
+    if(selectedCategory && $("item")?.classList.contains("active")){
+      renderItems(selectedCategory);
+    }
+  }else if(remoto===null && Object.keys(estoque).length){
+    // Migração somente se estoque_v2 ainda não existir.
+    const inicial={};
+
+    Object.entries(estoque).forEach(([logical,value])=>{
+      const sep=logical.indexOf("|||");
+      if(sep<0)return;
+
+      const categoria=logical.slice(0,sep);
+      const item=logical.slice(sep+3);
+      const catKey=getFirebasePart(categoria);
+      const itemKey=getFirebasePart(item);
+
+      if(!inicial[catKey])inicial[catKey]={};
+
+      inicial[catKey][itemKey]={
+        categoria,
+        item,
+        quantidade:Math.max(0,Math.floor(Number(value?.quantidade)||0)),
+        minimo:Math.max(0,Math.floor(Number(value?.minimo)||0))
+      };
+    });
+
+    estoqueRef.set(inicial).catch(e=>console.error("Erro na migração do estoque:",e));
   }
 },error=>{
   console.error("Erro ao sincronizar estoque:",error);
-  // Mantém o cache local disponível caso a internet caia.
+  // Mantém o último estoque local disponível.
 });
 
-// Escuta as OS em tempo real. Qualquer alteração no PC ou tablet atualiza os demais.
+// // Escuta as OS em tempo real. Qualquer alteração no PC ou tablet atualiza os demais.
 ordensRef.on("value",snapshot=>{
   const dados=snapshot.val();
 
@@ -559,6 +716,14 @@ function setServerStatus(status){
     text.textContent="CONECTANDO AO SERVIDOR...";
   }
 }
+// Conexão REAL do Realtime Database.
+// "Servidor conectado" não é o mesmo que "escrita autorizada"; este indicador
+// mostra apenas o estado de rede com o banco.
+firebaseConnectionRef.on("value",snapshot=>{
+  firebaseConnected=snapshot.val()===true;
+  setServerStatus(firebaseConnected?"connected":"offline");
+});
+
 
 // Status real da conexão com o Firebase.
 db.ref(".info/connected").on("value",snap=>{
@@ -657,11 +822,18 @@ function escapeHtml(v){return String(v??"").replaceAll("&","&amp;").replaceAll("
 function startMovement(){selectedMovement=selectedEmployee=selectedCategory=selectedItem=selectedQuantity=null;cartItems=[];updateCartUI();showScreen("movement")}
 function selectMovement(t){selectedMovement=t;showScreen("employee")}
 function renderEmployees(){const b=$("employeeOptions");b.innerHTML="";COLABORADORES.forEach(n=>{const x=document.createElement("button");x.className="option";x.innerHTML=`<div class="option-icon">${COLABORADOR_ICONS[n]||"👤"}</div><div class="option-name">${escapeHtml(n)}</div>`;x.onclick=()=>{selectedEmployee=n;showScreen("category")};b.appendChild(x)})}
-function renderCategories(){const b=$("categoryOptions");b.innerHTML="";Object.entries(CATEGORIAS).forEach(([n,d])=>{const x=document.createElement("button");x.className="category";x.innerHTML=`<div class="category-icon">${d.icon}</div><div>${n}</div>`;x.onclick=()=>{selectedCategory=n;$("categoryTitle").textContent=n;renderItems(n);showScreen("item")};b.appendChild(x)})}
+function renderCategories(){const b=$("categoryOptions");b.innerHTML="";getCategoriasEntries().forEach(([n,d])=>{const x=document.createElement("button");x.className="category";x.innerHTML=`<div class="category-icon">${d.icon}</div><div>${n}</div>`;x.onclick=()=>{selectedCategory=n;$("categoryTitle").textContent=n;renderItems(n);showScreen("item")};b.appendChild(x)})}
 function getStockKey(c,n){return c+"|||"+n}
+function getFirebasePart(value){
+  // Firebase path-safe, deterministic representation.
+  return encodeURIComponent(String(value)).replace(/%/g,"_");
+}
+function getFirebaseStockPath(c,n){
+  return getFirebasePart(c)+"/"+getFirebasePart(n);
+}
 function getStockData(c,n){return estoque[getStockKey(c,n)]||{quantidade:0,minimo:0}}
 function stockBadge(c,n){const d=getStockData(c,n),q=Number(d.quantidade)||0,m=Number(d.minimo)||0;let cls=q<=0?"zero":(m>0&&q<=m?"low":"");return `<div class="stock-badge ${cls}">${q}</div>`}
-function renderItems(c){const b=$("itemOptions");b.innerHTML="";CATEGORIAS[c].itens.forEach(n=>{const x=document.createElement("button");x.className="option";x.innerHTML=`<div class="option-icon">${ITEM_ICONS[n]||"📦"}</div><div class="option-name">${escapeHtml(n)}</div>${stockBadge(c,n)}`;x.onclick=()=>{selectedItem=n;selectedQuantity=1;$("quantityItemName").textContent=selectedItem;$("quantityInput").value=1;showScreen("quantity")};b.appendChild(x)});updateCartUI()}
+function renderItems(c){const b=$("itemOptions");b.innerHTML="";const cats=getCategoriasCompletas();if(!cats[c])return;cats[c].itens.forEach(n=>{const x=document.createElement("button");x.className="option";x.innerHTML=`<div class="option-icon">${ITEM_ICONS[n]||"📦"}</div><div class="option-name">${escapeHtml(n)}</div>${stockBadge(c,n)}`;x.onclick=()=>{selectedItem=n;selectedQuantity=1;$("quantityItemName").textContent=selectedItem;$("quantityInput").value=1;showScreen("quantity")};b.appendChild(x)});updateCartUI()}
 function addCurrentItemToCart(showMessage=true){
   const q=Number($("quantityInput").value);
   if(!Number.isFinite(q)||q<=0||!Number.isInteger(q)){toast("Informe uma quantidade válida.");return false;}
@@ -715,46 +887,164 @@ function changeCartQty(i,delta){
 function removeCartItem(i){cartItems.splice(i,1);updateCartUI();renderCart()}
 function clearCart(){cartItems=[];updateCartUI();toast("🗑️ Carrinho limpo.");showScreen("category")}
 function backFromCart(){if(selectedCategory){renderItems(selectedCategory);showScreen("item")}else showScreen("category")}
-function confirmCartMovement(){
-  if(!selectedMovement||!selectedEmployee||!cartItems.length)return toast("Complete a movimentação e adicione itens.");
-  // valida tudo antes de alterar qualquer saldo
-  if(selectedMovement==="RETIRADA"){
-    for(const x of cartItems){
-      const saldo=Number(getStockData(x.categoria,x.item).quantidade)||0;
-      if(Number(x.quantidade)>saldo)return toast(`⚠️ ${x.item}: solicitado ${x.quantidade}, disponível ${saldo}.`);
+async function confirmCartMovement(){
+  if(!selectedMovement||!selectedEmployee||!cartItems.length){
+    toast("Complete a movimentação e adicione itens.");
+    return;
+  }
+
+  if(!firebaseConnected){
+    toast("⚠️ Sem conexão com o servidor. A baixa não foi enviada.");
+    return;
+  }
+
+  const itensParaSalvar=cartItems.map(x=>({
+    categoria:x.categoria,
+    item:x.item,
+    quantidade:Math.max(1,Math.floor(Number(x.quantidade)||0))
+  }));
+
+  const agora=new Date().toLocaleString("pt-BR");
+  const movimentosConfirmados=[];
+
+  // IMPORTANTE: a baixa agora é feita com TRANSACTION diretamente no item
+  // do Firebase. Assim, se duas pessoas retirarem o mesmo material ao mesmo
+  // tempo, uma não sobrescreve a quantidade da outra.
+  try{
+    for(const x of itensParaSalvar){
+      const path=`estoque_v2/${getFirebasePart(x.categoria)}/${getFirebasePart(x.item)}`;
+      const ref=db.ref(path);
+      const resultado=await ref.transaction(atual=>{
+        const registro=(atual && typeof atual==="object") ? atual : {
+          categoria:x.categoria,
+          item:x.item,
+          quantidade:0,
+          minimo:0
+        };
+
+        const saldo=Math.max(0,Math.floor(Number(registro.quantidade)||0));
+        const qtd=x.quantidade;
+
+        if(selectedMovement==="RETIRADA" && qtd>saldo){
+          return; // aborta a transaction: não existe saldo suficiente
+        }
+
+        return {
+          ...registro,
+          categoria:String(registro.categoria||x.categoria),
+          item:String(registro.item||x.item),
+          quantidade:selectedMovement==="RETIRADA" ? saldo-qtd : saldo+qtd,
+          minimo:Math.max(0,Math.floor(Number(registro.minimo)||0))
+        };
+      });
+
+      if(!resultado.committed){
+        throw new Error(`SALDO_INSUFICIENTE:${x.item}`);
+      }
+
+      const atualizado=resultado.snapshot.val()||{};
+      const chave=getStockKey(x.categoria,x.item);
+      estoque[chave]={
+        quantidade:Math.max(0,Math.floor(Number(atualizado.quantidade)||0)),
+        minimo:Math.max(0,Math.floor(Number(atualizado.minimo)||0))
+      };
+
+      movimentosConfirmados.push({
+        id:Date.now()+movimentosConfirmados.length,
+        dataHora:agora,
+        movimento:selectedMovement,
+        colaborador:selectedEmployee,
+        categoria:x.categoria,
+        item:x.item,
+        quantidade:x.quantidade
+      });
+    }
+
+    // Só registra no histórico depois que todas as baixas do carrinho
+    // foram confirmadas no estoque remoto.
+    movimentacoes.push(...movimentosConfirmados);
+    localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+    localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"firebase"}));
+    await saveMovements();
+
+    renderStockSummary();
+    renderStockRanking();
+    if(typeof renderShoppingList==="function")renderShoppingList();
+    if($('stockCategoryOptions'))renderStockItems();
+    updateLastUpdate();
+
+    const totalItens=movimentosConfirmados.length;
+    cartItems=[];
+    updateCartUI();
+    toast(`✅ ${totalItens} item${totalItens!==1?"s":""} movimentado${totalItens!==1?"s":""}. Estoque atualizado no servidor!`);
+    setTimeout(()=>{renderHistory();showScreen("movement")},700);
+  }catch(error){
+    console.error("ERRO AO REGISTRAR MOVIMENTAÇÃO:",error);
+
+    // Se alguma operação falhou, não fingimos que a baixa foi concluída.
+    // Recarrega o estoque oficial para a tela voltar a refletir o Firebase.
+    try{
+      const snap=await estoqueRef.once("value");
+      const remoto=snap.val();
+      if(remoto && typeof remoto==="object"){
+        const normalizado={};
+        Object.entries(remoto).forEach(([catKey,items])=>{
+          if(!items||typeof items!=="object")return;
+          Object.entries(items).forEach(([itemKey,value])=>{
+            if(!value||typeof value!=="object")return;
+            const categoria=String(value.categoria||"").trim();
+            const item=String(value.item||"").trim();
+            if(!categoria||!item)return;
+            normalizado[getStockKey(categoria,item)]={
+              quantidade:Math.max(0,Math.floor(Number(value.quantidade)||0)),
+              minimo:Math.max(0,Math.floor(Number(value.minimo)||0))
+            };
+          });
+        });
+        estoque=normalizado;
+        localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+      }
+    }catch(reloadError){
+      console.error("Erro ao recarregar estoque oficial:",reloadError);
+    }
+
+    renderStockSummary();
+    if($('stockCategoryOptions'))renderStockItems();
+
+    const msg=String(error?.message||"");
+    if(msg.startsWith("SALDO_INSUFICIENTE:")){
+      toast(`❌ Saldo insuficiente para ${msg.replace("SALDO_INSUFICIENTE:","")}. A baixa não foi concluída.`);
+    }else if(error?.code==="PERMISSION_DENIED"){
+      toast("❌ Firebase recusou a alteração do estoque.");
+    }else{
+      toast("❌ Não foi possível atualizar o estoque no servidor. Nenhuma baixa foi registrada no histórico.");
     }
   }
-  const agora=new Date().toLocaleString("pt-BR");
-  const baseId=Date.now();
-  cartItems.forEach((x,i)=>{
-    movimentacoes.push({id:baseId+i,dataHora:agora,movimento:selectedMovement,colaborador:selectedEmployee,categoria:x.categoria,item:x.item,quantidade:Number(x.quantidade)});
-    const chave=getStockKey(x.categoria,x.item),atual=getStockData(x.categoria,x.item);
-    estoque[chave]={...atual,quantidade:selectedMovement==="RETIRADA"?Math.max(0,Number(atual.quantidade)-Number(x.quantidade)):Number(atual.quantidade)+Number(x.quantidade)};
-  });
-  saveStock();
-  saveMovements();
-  updateLastUpdate();
-  const totalItens=cartItems.length;
-  cartItems=[];updateCartUI();
-  toast(`✅ ${totalItens} item${totalItens!==1?"s":""} movimentado${totalItens!==1?"s":""} e estoque atualizado!`);
-  setTimeout(()=>{renderHistory();showScreen("movement")},700);
 }
-
 function resetMovement(){startMovement()}
 function saveMovements(){
   localStorage.setItem(ALMOX_STORAGE,JSON.stringify(movimentacoes));
+  renderHistory();
 
-  const promise=movimentacoesRef.set(JSON.parse(JSON.stringify(movimentacoes)))
-    .then(()=>{almoxFirebaseReady=true;})
+  if(!firebaseConnected){
+    toast("⚠️ Sem conexão: movimentação ficou salva neste aparelho.");
+    return Promise.reject(new Error("offline"));
+  }
+
+  return movimentacoesRef.set(JSON.parse(JSON.stringify(movimentacoes)))
+    .then(()=>{
+      almoxFirebaseReady=true;
+      return true;
+    })
     .catch(error=>{
-      console.error("Erro ao salvar movimentações:",error);
       almoxFirebaseReady=false;
-      toast("❌ Erro ao sincronizar movimentações.");
+      console.error("Firebase movimentações:",error);
+      const codigo=error?.code||"erro_desconhecido";
+      toast(codigo==="PERMISSION_DENIED"
+        ?"❌ Firebase recusou a movimentação."
+        :"❌ Erro ao sincronizar movimentação.");
       throw error;
     });
-
-  renderHistory();
-  return promise;
 }
 function renderHistory(){
 const b=$("history"),c=$("historyCount");
@@ -828,19 +1118,46 @@ function exportCSV(rows,name){const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String
 function exportAlmoxCSV(){if(!movimentacoes.length)return toast("Não existem movimentações.");exportCSV([["DATA/HORA","MOVIMENTO","COLABORADOR","CATEGORIA","ITEM","QUANTIDADE"],...movimentacoes.map(r=>[r.dataHora,r.movimento,r.colaborador,r.categoria,r.item,r.quantidade??1])],"arasigns_movimentacoes");toast("CSV gerado!")}
 function openOSDashboard(){renderDashboard();showScreen("osDashboard")}
 function saveStock(){
-  // Atualiza o cache local imediatamente.
-  localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+  const payload=JSON.parse(JSON.stringify(estoque));
+  localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(payload));
+  localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({
+    updatedAt:Date.now(),
+    source:"local"
+  }));
 
-  // E grava a mesma informação no banco compartilhado.
-  return estoqueRef.set(JSON.parse(JSON.stringify(estoque)))
-    .then(()=>{
-      estoqueMeta={updatedAt:Date.now(),source:"firebase"};
-      localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify(estoqueMeta));
-    })
-    .catch(e=>{
-      console.error("Erro ao salvar estoque:",e);
-      throw e;
-    });
+  if(!firebaseConnected){
+    return Promise.reject(new Error("offline"));
+  }
+
+  const updates={};
+
+  Object.entries(payload).forEach(([logical,value])=>{
+    const sep=logical.indexOf("|||");
+    if(sep<0)return;
+
+    const categoria=logical.slice(0,sep);
+    const item=logical.slice(sep+3);
+
+    updates[`estoque_v2/${getFirebasePart(categoria)}/${getFirebasePart(item)}`]={
+      categoria,
+      item,
+      quantidade:Math.max(0,Math.floor(Number(value?.quantidade)||0)),
+      minimo:Math.max(0,Math.floor(Number(value?.minimo)||0))
+    };
+  });
+
+  return db.ref().update(updates).then(()=>{
+    firebaseLastError="";
+    localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({
+      updatedAt:Date.now(),
+      source:"firebase"
+    }));
+    return true;
+  }).catch(error=>{
+    firebaseLastError=error?.code||error?.message||"erro_desconhecido";
+    console.error("Firebase estoque:",error);
+    throw error;
+  });
 }
 function previewStockStatus(input){
   const row=input.closest(".stock-row");
@@ -858,53 +1175,103 @@ async function saveAllStockQuantities(){
   const atuais=[...document.querySelectorAll(".stock-quantity-input")];
   const minimos=[...document.querySelectorAll(".stock-minimum-input")];
   const btn=document.querySelector(".stock-save-button");
-  if(!atuais.length){toast("⚠️ Nenhum item encontrado.");return;}
 
+  if(!atuais.length){
+    toast("⚠️ Nenhum item encontrado.");
+    return;
+  }
+
+  // Primeiro atualiza a cópia local, para a tela não perder o que foi digitado.
   const novoEstoque={...estoque};
+
   atuais.forEach(input=>{
     const categoria=decodeURIComponent(input.getAttribute("data-c")||"");
     const item=decodeURIComponent(input.getAttribute("data-n")||"");
+    if(!categoria || !item)return;
+
     const chave=getStockKey(categoria,item);
     const minInput=minimos.find(m=>
       m.getAttribute("data-c")===input.getAttribute("data-c") &&
       m.getAttribute("data-n")===input.getAttribute("data-n")
     );
+
+    const atual=novoEstoque[chave]||{};
+
     novoEstoque[chave]={
-      ...(novoEstoque[chave]||{}),
-      quantidade:Number.isFinite(Number(input.value))?Math.max(0,Number(input.value)):0,
+      quantidade:Math.max(0,Math.floor(Number(input.value)||0)),
       minimo:minInput
-        ?(Number.isFinite(Number(minInput.value))?Math.max(0,Number(minInput.value)):0)
-        :Number((novoEstoque[chave]||{}).minimo||0)
+        ? Math.max(0,Math.floor(Number(minInput.value)||0))
+        : Math.max(0,Math.floor(Number(atual.minimo)||0))
     };
   });
 
   estoque=JSON.parse(JSON.stringify(novoEstoque));
-  estoqueMeta={updatedAt:Date.now(),source:"local-pending"};
   localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
-  localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify(estoqueMeta));
+  localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({
+    updatedAt:Date.now(),
+    source:"local"
+  }));
 
-  if(btn){btn.disabled=true;btn.textContent="☁️ SALVANDO...";}
+  renderStockSummary();
+  renderStockRanking();
+  if(typeof renderShoppingList==="function")renderShoppingList();
+
+  if(btn){
+    btn.disabled=true;
+    btn.textContent="☁️ SALVANDO...";
+  }
+
   try{
-    // O set() resolvido pelo Firebase já confirma que a gravação foi aceita.
-    // Não fazemos uma segunda leitura obrigatória, pois ela estava gerando
-    // falso erro mesmo quando os dados já tinham sido enviados.
-    await estoqueRef.set(JSON.parse(JSON.stringify(estoque)));
-    estoqueMeta={updatedAt:Date.now(),source:"firebase"};
-    localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
-    localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify(estoqueMeta));
-    updateLastUpdate();
+    if(!firebaseConnected)throw new Error("offline");
 
-    renderStockItems();
-    renderStockSummary();
-    renderStockRanking();
-    if(typeof renderShoppingList==="function")renderShoppingList();
-    if(selectedCategory && CATEGORIAS[selectedCategory] && $("item")?.classList.contains("active"))renderItems(selectedCategory);
-    toast(`☁️ ${atuais.length} quantidades salvas e sincronizadas!`);
-  }catch(e){
-    console.error("Erro ao salvar estoque no Firebase:",e);
-    toast("❌ Erro ao salvar no servidor. As quantidades continuam guardadas neste aparelho.");
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent="💾 SALVAR QUANTIDADES";}
+    const updates={};
+
+    Object.entries(novoEstoque).forEach(([logical,value])=>{
+      const sep=logical.indexOf("|||");
+      if(sep<0)return;
+
+      const categoria=logical.slice(0,sep);
+      const item=logical.slice(sep+3);
+
+      updates[`estoque_v2/${getFirebasePart(categoria)}/${getFirebasePart(item)}`]={
+        categoria,
+        item,
+        quantidade:Math.max(0,Math.floor(Number(value?.quantidade)||0)),
+        minimo:Math.max(0,Math.floor(Number(value?.minimo)||0))
+      };
+    });
+
+    await db.ref().update(updates);
+
+    localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({
+      updatedAt:Date.now(),
+      source:"firebase"
+    }));
+
+    if(btn){
+      btn.disabled=false;
+      btn.textContent="💾 SALVAR QUANTIDADES";
+    }
+
+    updateLastUpdate();
+    toast("☁️ Estoque salvo no servidor!");
+  }catch(error){
+    console.error("ERRO AO SALVAR ESTOQUE:",error);
+
+    if(btn){
+      btn.disabled=false;
+      btn.textContent="💾 SALVAR QUANTIDADES";
+    }
+
+    const codigo=error?.code||error?.message||"erro_desconhecido";
+
+    if(codigo==="PERMISSION_DENIED"){
+      toast("❌ Firebase recusou a gravação.");
+    }else if(codigo==="offline"){
+      toast("⚠️ Sem conexão. Ficou salvo neste aparelho.");
+    }else{
+      toast("❌ Erro ao salvar: "+codigo);
+    }
   }
 }
 function updateStockItem(c,n,field,value){
@@ -917,8 +1284,8 @@ function updateStockItem(c,n,field,value){
 }
 function renderStockSummary(){
   const all=[];
-  Object.entries(CATEGORIAS).forEach(([c,d])=>d.itens.forEach(n=>all.push(getStockData(c,n))));
-  const cadastrados=all.filter(x=>Number(x.quantidade)>0||Number(x.minimo)>0).length;
+  getCategoriasEntries().forEach(([c,d])=>d.itens.forEach(n=>all.push(getStockData(c,n))));
+  const cadastrados=all.length;
   const zero=all.filter(x=>Number(x.quantidade)<=0).length;
   const low=all.filter(x=>Number(x.minimo)>0&&Number(x.quantidade)>0&&Number(x.quantidade)<=Number(x.minimo)).length;
   $("stockTotalItems").textContent=cadastrados;
@@ -948,34 +1315,182 @@ function toolHolderLabel(itemName){
   return "👤 COM: "+holders.map(([nome,q])=>q>1?`${escapeHtml(nome)} (${q})`:escapeHtml(nome)).join(", ");
 }
 
-function renderStockItems(){
-  const box=$("stockCategoryOptions");box.innerHTML="";
-  Object.entries(CATEGORIAS).forEach(([c,d])=>{
-    const block=document.createElement("div");block.className="stock-category-block";
-    block.innerHTML=`<div class="stock-category-title">${d.icon} ${escapeHtml(c)}</div>`;
+function isCustomStockItem(c,n){
+  const targetCat=String(c).trim().toUpperCase();
+  const targetName=String(n).trim().toUpperCase();
+  return Object.values(itensCadastrados||{}).some(d=>{
+    if(!d||typeof d!=="object")return false;
+    const cat=String(d.categoria||"").trim().toUpperCase();
+    if(cat!==targetCat)return false;
+    return Object.values(d.itens||{}).some(reg=>String(reg?.item||"").trim().toUpperCase()===targetName);
+  });
+}
 
-    d.itens.forEach(n=>{
-      const item=getStockData(c,n),row=document.createElement("div");row.className="stock-row";
+function findCustomItemRecord(c,n){
+  const targetCat=String(c).trim().toUpperCase();
+  const targetName=String(n).trim().toUpperCase();
+  for(const [catKey,d] of Object.entries(itensCadastrados||{})){
+    if(!d||typeof d!=="object")continue;
+    const cat=String(d.categoria||catKey).trim();
+    if(cat.toUpperCase()!==targetCat)continue;
+    for(const [itemKey,reg] of Object.entries(d.itens||{})){
+      if(String(reg?.item||"").trim().toUpperCase()===targetName){
+        return {catKey,itemKey,reg,categoria:cat,nome:String(reg.item).trim()};
+      }
+    }
+  }
+  return null;
+}
+
+function renderStockItemActions(c,n){
+  if(!isCustomStockItem(c,n))return "";
+  return `<div class="stock-item-actions">
+    <button type="button" class="stock-item-action edit" title="Editar item" aria-label="Editar item" onclick='openEditItem(${JSON.stringify(c)},${JSON.stringify(n)})'>✏️</button>
+    <button type="button" class="stock-item-action delete" title="Excluir item" aria-label="Excluir item" onclick='deleteCustomItem(${JSON.stringify(c)},${JSON.stringify(n)})'>🗑️</button>
+  </div>`;
+}
+
+function renderStockItems(){
+  const box=$("stockCategoryOptions");
+  if(!box)return;
+
+  box.innerHTML="";
+
+  const categorias=getCategoriasEntries();
+
+  categorias.forEach(([c,d])=>{
+    const block=document.createElement("div");
+    block.className="stock-category-block";
+
+    const title=document.createElement("div");
+    title.className="stock-category-title";
+    title.innerHTML=`${d.icon||"📦"} ${escapeHtml(c)}`;
+    block.appendChild(title);
+
+    const itens=Array.isArray(d.itens)?d.itens:[];
+
+    itens.forEach(n=>{
+      const item=getStockData(c,n);
+      const row=document.createElement("div");
+      row.className="stock-row";
+
       const isTool=String(c).trim().toUpperCase()==="FERRAMENTAS";
+      const custom=isCustomStockItem(c,n);
+      const actions=renderStockItemActions(c,n);
+
+      const main=document.createElement("div");
+      main.className="stock-row-main";
+
+      const name=document.createElement("div");
+      name.className="stock-row-name";
+      name.innerHTML=`${ITEM_ICONS[n]||"📦"} ${escapeHtml(n)}`;
+      main.appendChild(name);
+
+      if(custom){
+        const customLabel=document.createElement("div");
+        customLabel.className="stock-item-custom";
+        customLabel.textContent="ITEM CADASTRADO MANUALMENTE";
+        main.appendChild(customLabel);
+      }
 
       if(isTool){
-        row.classList.add("stock-tool-row");
-        row.innerHTML=`<div><div class="stock-row-name">${ITEM_ICONS[n]||"🔧"} ${escapeHtml(n)}</div><div class="tool-holder-status">${toolHolderLabel(n)}</div></div>
-        <div class="stock-input-wrap"><small>QUANTIDADE</small><input class="stock-input stock-quantity-input" data-c="${encodeURIComponent(c)}" data-n="${encodeURIComponent(n)}" type="number" min="0" step="1" value="${Number(item.quantidade)||0}"></div>`;
+        const holder=document.createElement("div");
+        holder.className="tool-holder-status";
+        holder.innerHTML=toolHolderLabel(n);
+        main.appendChild(holder);
+
+        row.appendChild(main);
+
+        if(actions){
+          const actionWrap=document.createElement("div");
+          actionWrap.innerHTML=actions;
+          row.appendChild(actionWrap.firstElementChild);
+        }else{
+          row.appendChild(document.createElement("div"));
+        }
+
+        const inputWrap=document.createElement("div");
+        inputWrap.className="stock-input-wrap";
+        inputWrap.innerHTML=`
+          <small>QUANTIDADE</small>
+          <input
+            class="stock-input stock-quantity-input"
+            data-c="${encodeURIComponent(c)}"
+            data-n="${encodeURIComponent(n)}"
+            type="number"
+            min="0"
+            step="1"
+            value="${Math.max(0,Math.floor(Number(item.quantidade)||0))}"
+            inputmode="numeric"
+          >`;
+        row.appendChild(inputWrap);
       }else{
-        row.innerHTML=`<div><div class="stock-row-name">${ITEM_ICONS[n]||"📦"} ${escapeHtml(n)}</div><div class="stock-status">${Number(item.quantidade)<=0?"🔴 Sem saldo":(Number(item.minimo)>0&&Number(item.quantidade)<=Number(item.minimo)?"🟡 Estoque baixo":"🟢 Em estoque")}</div></div>
-        <div class="stock-input-wrap"><small>ATUAL</small><input class="stock-input stock-quantity-input" data-c="${encodeURIComponent(c)}" data-n="${encodeURIComponent(n)}" type="number" min="0" step="1" value="${Number(item.quantidade)||0}" oninput="previewStockStatus(this)"></div>
-        <div class="stock-input-wrap"><small>MÍNIMO</small><input class="stock-input stock-minimum-input" data-c="${encodeURIComponent(c)}" data-n="${encodeURIComponent(n)}" type="number" min="0" step="1" value="${Number(item.minimo)||0}"></div>`;
+        const status=document.createElement("div");
+        status.className="stock-status";
+        const q=Math.max(0,Number(item.quantidade)||0);
+        const m=Math.max(0,Number(item.minimo)||0);
+        status.textContent=q<=0
+          ?"🔴 Sem saldo"
+          :(m>0&&q<=m?"🟡 Estoque baixo":"🟢 Em estoque");
+        main.appendChild(status);
+
+        row.appendChild(main);
+
+        if(actions){
+          const actionWrap=document.createElement("div");
+          actionWrap.innerHTML=actions;
+          row.appendChild(actionWrap.firstElementChild);
+        }else{
+          row.appendChild(document.createElement("div"));
+        }
+
+        const qtyWrap=document.createElement("div");
+        qtyWrap.className="stock-input-wrap";
+        qtyWrap.innerHTML=`
+          <small>ATUAL</small>
+          <input
+            class="stock-input stock-quantity-input"
+            data-c="${encodeURIComponent(c)}"
+            data-n="${encodeURIComponent(n)}"
+            type="number"
+            min="0"
+            step="1"
+            value="${q}"
+            inputmode="numeric"
+            oninput="previewStockStatus(this)"
+          >`;
+
+        const minWrap=document.createElement("div");
+        minWrap.className="stock-input-wrap";
+        minWrap.innerHTML=`
+          <small>MÍNIMO</small>
+          <input
+            class="stock-input stock-minimum-input"
+            data-c="${encodeURIComponent(c)}"
+            data-n="${encodeURIComponent(n)}"
+            type="number"
+            min="0"
+            step="1"
+            value="${m}"
+            inputmode="numeric"
+            oninput="previewStockStatus(this.closest('.stock-row').querySelector('.stock-quantity-input'))"
+          >`;
+
+        row.appendChild(qtyWrap);
+        row.appendChild(minWrap);
       }
+
       block.appendChild(row);
     });
+
     box.appendChild(block);
   });
 }
+
 function renderStockRanking(){
   const box=$("stockRankingList");if(!box)return;
   const all=[];
-  Object.entries(CATEGORIAS).forEach(([c,d])=>d.itens.forEach(n=>{const x=getStockData(c,n);all.push({c,n,q:Number(x.quantidade)||0,m:Number(x.minimo)||0})}));
+  getCategoriasEntries().forEach(([c,d])=>d.itens.forEach(n=>{const x=getStockData(c,n);all.push({c,n,q:Number(x.quantidade)||0,m:Number(x.minimo)||0})}));
   all.sort((a,b)=>a.q-b.q||a.n.localeCompare(b.n,"pt-BR"));
   box.innerHTML=all.map((x,i)=>{const status=x.q<=0?"zero":(x.m>0&&x.q<=x.m?"low":"");return `<div class="stock-ranking-item"><div class="rank-position">${i+1}</div><div><div class="rank-name">${ITEM_ICONS[x.n]||"📦"} ${escapeHtml(x.n)}</div><div class="rank-category">${escapeHtml(x.c)}</div></div><div><div class="rank-qty ${status}">${x.q}</div><div class="rank-unit">${x.q<=0?"ZERADO":(x.m>0&&x.q<=x.m?"BAIXO":"EM ESTOQUE")}</div></div></div>`}).join("");
 }
@@ -1048,7 +1563,7 @@ function exportMovementsXML(){
 function renderShoppingList(){
   const box=$("shoppingList");if(!box)return;
   const needs=[];
-  Object.entries(CATEGORIAS).forEach(([c,d])=>d.itens.forEach(n=>{
+  getCategoriasEntries().forEach(([c,d])=>d.itens.forEach(n=>{
     const x=getStockData(c,n),q=Number(x.quantidade)||0,m=Number(x.minimo)||0;
     if(q<=0||(m>0&&q<=m))needs.push({c,n,q,m,falta:m>0?Math.max(0,m-q):0,status:q<=0?"zero":"low"});
   }));
@@ -1061,7 +1576,183 @@ function renderShoppingList(){
     return `<div class="shopping-item ${x.status}"><div class="shopping-icon">${ITEM_ICONS[x.n]||"📦"}</div><div><div class="shopping-name">${escapeHtml(x.n)}</div><div class="shopping-category">${escapeHtml(x.c)}</div></div><div class="shopping-info"><div class="shopping-current">${x.q}</div><div class="shopping-target">${label}</div><div class="shopping-need">${need}</div></div></div>`;
   }).join("");
 }
-function renderStockControl(){renderStockSummary();renderStockItems();renderStockRanking();renderShoppingList();renderStockHistory()}
+
+function populateNewItemCategories(){
+  const select=$("newItemCategory");if(!select)return;
+  const cats=getCategoriasEntries();
+  select.innerHTML=cats.map(([nome,dados])=>`<option value="${escapeHtml(nome)}">${escapeHtml(dados.icon||"📦")} ${escapeHtml(nome)}</option>`).join("");
+  const ferramenta=cats.find(([nome])=>String(nome).trim().toUpperCase()==="FERRAMENTAS");
+  if(ferramenta)select.value=ferramenta[0];
+  updateNewItemMinimumState();
+}
+function updateNewItemMinimumState(){
+  const category=$("newItemCategory")?.value||"",minimum=$("newItemMinimum");if(!minimum)return;
+  const isTool=String(category).trim().toUpperCase()==="FERRAMENTAS";
+  minimum.disabled=isTool;
+  if(isTool){minimum.value="0";minimum.placeholder="Ferramentas não usam mínimo";}
+  else minimum.placeholder="Ex: 10";
+}
+let editingItemOriginal=null;
+
+function resetNewItemModalMode(){
+  editingItemOriginal=null;
+  $("editingItemCategory").value="";
+  $("editingItemName").value="";
+  $("newItemTitle").textContent="CADASTRAR NOVO ITEM";
+  $("newItemSaveButton").textContent="💾 SALVAR ITEM";
+  $("newItemQuantity").disabled=false;
+}
+
+function openNewItemModal(){
+  resetNewItemModalMode();
+  populateNewItemCategories();
+  $("newItemName").value="";$("newItemQuantity").value="0";$("newItemMinimum").value="0";
+  $("newItemModal").classList.add("show");
+  setTimeout(()=>$("newItemName")?.focus(),50);
+}
+
+function openEditItem(c,n){
+  const found=findCustomItemRecord(c,n);
+  if(!found)return toast("⚠️ Não foi possível localizar esse item cadastrado.");
+  const stock=getStockData(c,n);
+  editingItemOriginal={categoria:found.categoria,nome:found.nome,catKey:found.catKey,itemKey:found.itemKey};
+  populateNewItemCategories();
+  $("editingItemCategory").value=found.categoria;
+  $("editingItemName").value=found.nome;
+  $("newItemTitle").textContent="EDITAR ITEM";
+  $("newItemSaveButton").textContent="💾 ATUALIZAR ITEM";
+  $("newItemName").value=found.nome;
+  $("newItemCategory").value=found.categoria;
+  $("newItemQuantity").value=Number(stock.quantidade)||0;
+  $("newItemMinimum").value=Number(stock.minimo)||0;
+  $("newItemQuantity").disabled=false;
+  updateNewItemMinimumState();
+  $("newItemModal").classList.add("show");
+  setTimeout(()=>$("newItemName")?.focus(),50);
+}
+
+function closeNewItemModal(){
+  $("newItemModal")?.classList.remove("show");
+  resetNewItemModalMode();
+}
+
+function sameItem(c1,n1,c2,n2){
+  return String(c1).trim().toUpperCase()===String(c2).trim().toUpperCase()
+    && String(n1).trim().toUpperCase()===String(n2).trim().toUpperCase();
+}
+
+function customItemDuplicate(categoria,name,exclude){
+  const cat=getCategoriasCompletas()[categoria];
+  return (cat?.itens||[]).some(x=>{
+    if(exclude && sameItem(categoria,x,exclude.categoria,exclude.nome))return false;
+    return String(x).trim().toUpperCase()===String(name).trim().toUpperCase();
+  });
+}
+
+async function saveNewItem(){
+  const name=String($("newItemName")?.value||"").trim().replace(/\s+/g," ");
+  const categoria=String($("newItemCategory")?.value||"").trim();
+  const quantidade=Math.max(0,Math.floor(Number($("newItemQuantity")?.value)||0));
+  const isTool=String(categoria).toUpperCase()==="FERRAMENTAS";
+  const minimo=isTool?0:Math.max(0,Math.floor(Number($("newItemMinimum")?.value)||0));
+  const btn=$("newItemSaveButton");
+
+  if(!name)return toast("⚠️ Digite o nome do item.");
+  if(!categoria)return toast("⚠️ Escolha uma categoria.");
+  if(name.length<2)return toast("⚠️ O nome do item é muito curto.");
+  if(customItemDuplicate(categoria,name,editingItemOriginal))return toast("⚠️ Esse item já existe nessa categoria.");
+  if(!firebaseConnected)return toast("⚠️ Sem conexão com o Firebase. Conecte o aparelho e tente novamente.");
+
+  if(btn){btn.disabled=true;btn.textContent=editingItemOriginal?"☁️ ATUALIZANDO...":"☁️ SALVANDO...";}
+  try{
+    const agora=new Date().toISOString();
+    const updates={};
+
+    if(editingItemOriginal){
+      const oldCatKey=editingItemOriginal.catKey;
+      const oldItemKey=editingItemOriginal.itemKey;
+      const oldStockKey=`estoque_v2/${getFirebasePart(editingItemOriginal.categoria)}/${getFirebasePart(editingItemOriginal.nome)}`;
+      const newCatKey=getFirebasePart(categoria);
+      const newItemKey=getFirebasePart(name);
+
+      updates[`itens_cadastrados/${oldCatKey}/itens/${oldItemKey}`]=null;
+      updates[oldStockKey]=null;
+      updates[`itens_cadastrados/${newCatKey}/categoria`]=categoria;
+      updates[`itens_cadastrados/${newCatKey}/itens/${newItemKey}`]={categoria,item:name,criadoEm:editingItemOriginal.criadoEm||agora,atualizadoEm:agora};
+      updates[`estoque_v2/${newCatKey}/${newItemKey}`]={categoria,item:name,quantidade,minimo};
+
+      await db.ref().update(updates);
+
+      delete estoque[getStockKey(editingItemOriginal.categoria,editingItemOriginal.nome)];
+      estoque[getStockKey(categoria,name)]={quantidade,minimo};
+      localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+      localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"firebase"}));
+      closeNewItemModal();
+      renderStockControl();renderCategories();
+      toast(`✅ ${name} atualizado e sincronizado!`);
+      updateLastUpdate();
+    }else{
+      const itemKey=getFirebasePart(name);
+      const catKey=getFirebasePart(categoria);
+      updates[`itens_cadastrados/${catKey}/categoria`]=categoria;
+      updates[`itens_cadastrados/${catKey}/itens/${itemKey}`]={categoria,item:name,criadoEm:agora};
+      updates[`estoque_v2/${catKey}/${itemKey}`]={categoria,item:name,quantidade,minimo};
+      await db.ref().update(updates);
+
+      estoque[getStockKey(categoria,name)]={quantidade,minimo};
+      localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+      localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"firebase"}));
+      closeNewItemModal();
+      renderStockControl();renderCategories();
+      toast(`✅ ${name} cadastrado e sincronizado!`);
+      updateLastUpdate();
+    }
+  }catch(error){
+    console.error("Erro ao salvar item:",error);
+    const codigo=error?.code||error?.message||"erro_desconhecido";
+    toast(codigo==="PERMISSION_DENIED"?"❌ Firebase recusou a alteração. Verifique as regras do banco.":"❌ Não foi possível salvar o item: "+codigo);
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent=editingItemOriginal?"💾 ATUALIZAR ITEM":"💾 SALVAR ITEM";
+    }
+  }
+}
+
+async function deleteCustomItem(c,n){
+  const found=findCustomItemRecord(c,n);
+  if(!found)return toast("⚠️ Não foi possível localizar esse item cadastrado.");
+  if(!firebaseConnected)return toast("⚠️ Sem conexão com o Firebase. Conecte o aparelho e tente novamente.");
+
+  const ok=confirm(`Excluir definitivamente o item "${found.nome}"?\n\nIsso removerá o item do Almoxarifado e do Controle de Estoque em todos os aparelhos.\n\nO histórico antigo de movimentações será mantido.`);
+  if(!ok)return;
+
+  try{
+    const updates={};
+    updates[`itens_cadastrados/${found.catKey}/itens/${found.itemKey}`]=null;
+    updates[`estoque_v2/${getFirebasePart(found.categoria)}/${getFirebasePart(found.nome)}`]=null;
+    await db.ref().update(updates);
+
+    delete estoque[getStockKey(found.categoria,found.nome)];
+    localStorage.setItem(ESTOQUE_STORAGE,JSON.stringify(estoque));
+    localStorage.setItem(ESTOQUE_META_STORAGE,JSON.stringify({updatedAt:Date.now(),source:"firebase"}));
+    renderStockControl();
+    renderCategories();
+    if(selectedCategory===found.categoria && $("item")?.classList.contains("active"))renderItems(selectedCategory);
+    toast(`🗑️ ${found.nome} excluído e sincronizado!`);
+    updateLastUpdate();
+  }catch(error){
+    console.error("Erro ao excluir item:",error);
+    const codigo=error?.code||error?.message||"erro_desconhecido";
+    toast(codigo==="PERMISSION_DENIED"?"❌ Firebase recusou a exclusão. Verifique as regras do banco.":"❌ Não foi possível excluir o item: "+codigo);
+  }
+}
+
+document.addEventListener("change",e=>{if(e.target?.id==="newItemCategory")updateNewItemMinimumState()});
+document.addEventListener("click",e=>{if(e.target?.id==="newItemModal")closeNewItemModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("newItemModal")?.classList.contains("show"))closeNewItemModal()});
+
+function renderStockControl(){renderStockSummary();renderStockItems();renderStockRanking();renderShoppingList();renderStockHistory();if($("almoxDashboard")?.classList.contains("active"))renderAlmoxDashboard()}
 function showStockTab(tab,btn){
   $("stockItemsPanel").style.display=tab==="items"?"block":"none";
   $("stockRankingPanel").style.display=tab==="ranking"?"block":"none";
@@ -1072,6 +1763,32 @@ function showStockTab(tab,btn){
   if(tab==="shopping")renderShoppingList();
   if(tab==="history")renderStockHistory();
 }
+function getMovementDate(m){return m?.dataHora||m?.data||m?.createdAt||m?.timestamp||null}
+function openAlmoxDashboard(){renderAlmoxDashboard();showScreen("almoxDashboard")}
+function dashMovements(){return Array.isArray(movimentacoes)?movimentacoes.filter(Boolean):[]}
+function renderAlmoxDashboard(){
+  const all=[]; getCategoriasEntries().forEach(([c,d])=>d.itens.forEach(n=>{const x=getStockData(c,n);all.push({c,n,q:Math.max(0,Number(x.quantidade)||0),m:Math.max(0,Number(x.minimo)||0)})}));
+  const regs=dashMovements(); const tipo=m=>String(m.movimento||m.tipo||"").trim().toUpperCase();
+  const retiradas=regs.filter(m=>tipo(m)==="RETIRADA"), devolucoes=regs.filter(m=>tipo(m)==="DEVOLUÇÃO"||tipo(m)==="DEVOLUCAO");
+  const totalQtd=all.reduce((a,x)=>a+x.q,0),zero=all.filter(x=>x.q<=0),low=all.filter(x=>x.q>0&&x.m>0&&x.q<=x.m),movQtd=regs.reduce((a,m)=>a+(Number(m.quantidade)||0),0),retQtd=retiradas.reduce((a,m)=>a+(Number(m.quantidade)||0),0),devQtd=devolucoes.reduce((a,m)=>a+(Number(m.quantidade)||0),0);
+  const k=$("almoxDashKpis"); if(!k)return;
+  k.innerHTML=`<div class="almox-kpi blue"><small>ITENS CADASTRADOS</small><strong>${all.length}</strong><span>produtos ativos</span></div><div class="almox-kpi green"><small>UNIDADES EM ESTOQUE</small><strong>${totalQtd}</strong><span>saldo atual</span></div><div class="almox-kpi yellow"><small>ESTOQUE BAIXO</small><strong>${low.length}</strong><span>precisam de atenção</span></div><div class="almox-kpi red"><small>ZERADOS</small><strong>${zero.length}</strong><span>sem saldo</span></div>`;
+  const upd=$("almoxDashUpdated");if(upd)upd.textContent=`${regs.length} movimentações • ${new Date().toLocaleString("pt-BR")}`;
+  const mv=[{n:"Retiradas",v:retQtd},{n:"Devoluções",v:devQtd},{n:"Movimentações",v:movQtd}],maxMv=Math.max(1,...mv.map(x=>x.v));
+  $("almoxDashMovementBars").innerHTML=mv.map(x=>`<div class="almox-bar-row"><div class="almox-bar-name">${x.n}</div><div class="almox-bar-track"><div class="almox-bar-fill" style="width:${Math.min(100,(x.v/maxMv)*100)}%"></div></div><div class="almox-bar-value">${x.v}</div></div>`).join("");
+  const cats={};all.forEach(x=>{cats[x.c]=(cats[x.c]||0)+x.q});const catArr=Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,8),maxCat=Math.max(1,...catArr.map(x=>x[1]));
+  $("almoxDashCategoryBars").innerHTML=catArr.length?catArr.map(([n,v])=>`<div class="almox-bar-row"><div class="almox-bar-name" title="${escapeHtml(n)}">${escapeHtml(n)}</div><div class="almox-bar-track"><div class="almox-bar-fill" style="width:${Math.min(100,(v/maxCat)*100)}%"></div></div><div class="almox-bar-value">${v}</div></div>`).join(""): `<div class="almox-empty">Nenhum dado de categoria.</div>`;
+  const itemMap={};retiradas.forEach(m=>{const key=String(m.item||"");if(key)itemMap[key]=(itemMap[key]||0)+(Number(m.quantidade)||0)});const top=Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  $("almoxDashTopItems").innerHTML=top.length?top.map(([n,v],i)=>`<div class="almox-dash-list-item"><div class="almox-dash-list-main"><div class="almox-dash-list-name">${i+1}. ${ITEM_ICONS[n]||"📦"} ${escapeHtml(n)}</div><div class="almox-dash-list-meta">Total retirado no histórico</div></div><div class="almox-dash-pill red">− ${v}</div></div>`).join(""):`<div class="almox-empty">Ainda não há retiradas registradas.</div>`;
+  const people={};regs.forEach(m=>{const p=String(m.colaborador||"").trim();if(!p)return;const q=Number(m.quantidade)||0;if(!people[p])people[p]={mov:0,q:0};people[p].mov++;people[p].q+=q});const ppl=Object.entries(people).sort((a,b)=>b[1].q-a[1].q).slice(0,7);
+  $("almoxDashPeople").innerHTML=ppl.length?ppl.map(([n,v])=>`<div class="almox-dash-list-item"><div class="almox-dash-list-main"><div class="almox-dash-list-name">👤 ${escapeHtml(n)}</div><div class="almox-dash-list-meta">${v.mov} movimentação${v.mov!==1?"ões":""}</div></div><div class="almox-dash-pill blue">${v.q} un.</div></div>`).join(""):`<div class="almox-empty">Ainda não há movimentações.</div>`;
+  const alerts=[...zero.map(x=>({...x,status:"ZERADO",cls:"red"})),...low.map(x=>({...x,status:"BAIXO",cls:"yellow"}))].sort((a,b)=>a.q-b.q).slice(0,8);
+  $("almoxDashAlerts").innerHTML=alerts.length?alerts.map(x=>`<div class="almox-dash-list-item"><div class="almox-dash-list-main"><div class="almox-dash-list-name">${ITEM_ICONS[x.n]||"📦"} ${escapeHtml(x.n)}</div><div class="almox-dash-list-meta">${escapeHtml(x.c)} • atual: ${x.q} • mínimo: ${x.m}</div></div><div class="almox-dash-pill ${x.cls}">${x.status}</div></div>`).join(""):`<div class="almox-empty">🟢 Nenhum item crítico.</div>`;
+  const recent=[...regs].sort((a,b)=>new Date(getMovementDate(b)||0)-new Date(getMovementDate(a)||0)).slice(0,10);
+  $("almoxDashRecent").innerHTML=recent.length?recent.map(m=>{const ret=tipo(m)==="RETIRADA";return `<div class="almox-dash-list-item"><div class="almox-dash-list-main"><div class="almox-dash-list-name">${ret?"⬆️":"⬇️"} ${escapeHtml(m.item||"Item")}</div><div class="almox-dash-list-meta">${escapeHtml(m.colaborador||"Não informado")} • ${escapeHtml(m.categoria||"")} • ${escapeHtml(formatMovementDate(getMovementDate(m)))}</div></div><div class="almox-dash-pill ${ret?"red":"green"}">${ret?"−":"+"} ${Number(m.quantidade)||0}</div></div>`}).join(""): `<div class="almox-empty">📭 Nenhuma movimentação registrada.</div>`;
+  const insight=$("almoxDashInsight");if(insight){if(!regs.length)insight.innerHTML="Ainda não há movimentações suficientes para gerar uma análise histórica.";else if(retQtd>devQtd)insight.innerHTML=`Foram retiradas <b>${retQtd}</b> unidades e devolvidas <b>${devQtd}</b>. O saldo histórico está em <b>${retQtd-devQtd}</b> unidades retiradas.`;else if(devQtd>retQtd)insight.innerHTML=`As devoluções superam as retiradas em <b>${devQtd-retQtd}</b> unidades.`;else insight.innerHTML="Retiradas e devoluções estão equilibradas no histórico.";}
+}
+
 function openStockControl(){
 const senha=prompt("🔐 DIGITE A SENHA PARA ACESSAR O CONTROLE DE ESTOQUE:");
 if(senha===null)return;
@@ -1213,15 +1930,24 @@ function registerOS(){
 }
 function saveOS(){
   localStorage.setItem(OS_STORAGE,JSON.stringify(ordens));
-  if(!firebaseReady){
-    toast("⚠️ Conectando ao servidor...");
-    return Promise.reject(new Error("Firebase ainda não está conectado."));
+
+  if(!firebaseConnected){
+    toast("⚠️ Sem conexão com o servidor. OS salva neste aparelho.");
+    return Promise.reject(new Error("offline"));
   }
 
   return ordensRef.set(JSON.parse(JSON.stringify(ordens)))
+    .then(()=>{
+      firebaseReady=true;
+      return true;
+    })
     .catch(error=>{
-      console.error("Erro ao salvar no Firebase:",error);
-      toast("❌ Erro ao sincronizar a OS.");
+      firebaseReady=false;
+      console.error("Firebase OS:",error);
+      const codigo=error?.code||"erro_desconhecido";
+      toast(codigo==="PERMISSION_DENIED"
+        ?"❌ Firebase recusou a gravação da OS."
+        :"❌ Erro ao sincronizar a OS.");
       throw error;
     });
 }
@@ -1494,7 +2220,7 @@ setInterval(()=>{
 console.log("Arasigns pronto");
 </script>
 <footer class="app-footer">
-  <div class="footer-version">VERSÃO 2.1.2</div>
+  <div class="footer-version">VERSÃO 2.2.0</div>
   <div class="footer-update-line">
     <span class="footer-update-icon">🕒</span>
     <span>ÚLTIMA ATUALIZAÇÃO:</span>
